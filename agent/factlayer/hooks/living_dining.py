@@ -102,7 +102,7 @@ def audit(path: Path) -> dict:
     vertical_bars = len(runs(vertical_flags, min_len=1))
 
     violations = []
-    if horizontal_bars >= 5 or horizontal_row_ratio > 0.12:
+    if horizontal_bars >= 3 or horizontal_row_ratio > 0.05:
         violations.append(
             {
                 "element": "window_grid",
