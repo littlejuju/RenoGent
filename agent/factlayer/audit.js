@@ -33,6 +33,7 @@ Step B: reconcile against the manifest (or, without a manifest, against the mark
   - manifest component MISSING → violation (component-missing)
   - render component NOT in the manifest → violation (component-invented), UNLESS the brief explicitly justifies it AND the plan geometry permits it there (e.g. "open concept kitchen" may only open the wall that actually borders the kitchen, in its actual position)
   - present but wrong bearing/side → violation (component-misplaced)
+  - WALL-PLANE COPLANARITY: wall segments the plan draws as ONE straight line must render flush/coplanar — a wall face that jogs forward or back relative to a door or opening in the same wall line is component-misplaced (fatal)
   - beams/columns on the plan inside the view must appear (structure)
   - any plan text leaked into the render — dimension numbers, room labels, "DROP", annotation arrows on floors or walls — is a violation (element: "artifact", layer 1, fatal)
 Room identity follows from this layer: if the component set matches a different room or no room, that is a room-identity violation.

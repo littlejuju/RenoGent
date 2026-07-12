@@ -154,7 +154,9 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}, roo
     briefs = JSON.parse(fs.readFileSync(briefsPath, 'utf8'))
   } else {
     await onProgress('briefs', null, null)
-    briefs = await readPlanBriefs(path.resolve(planPath))
+    // the homeowner's brief informs room identification (they know their flat:
+    // "the study" must become its own room even if the plan draws it like a porch)
+    briefs = await readPlanBriefs(path.resolve(planPath), style)
     if (!briefs.is_floor_plan) return { is_floor_plan: false, results: [] }
     // persist the fact layer: briefs are the single source of truth for both the
     // renderer and the auditor — they must be reviewable after the fact

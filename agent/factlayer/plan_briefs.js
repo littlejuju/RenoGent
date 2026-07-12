@@ -9,9 +9,13 @@ import { parseJson } from '../llm.js'
 const execFileP = promisify(execFile)
 const MODEL = process.env.RENOAI_MODEL || 'claude-sonnet-5'
 
-export async function readPlanBriefs(imagePath) {
+export async function readPlanBriefs(imagePath, homeownerBrief = '') {
   const prompt = `Read the image at: ${imagePath}
-
+${homeownerBrief ? `
+HOMEOWNER BRIEF (ground truth for room NAMES and FUNCTIONS — the homeowner knows their own flat):
+"""${homeownerBrief}"""
+If the brief names a room (e.g. "the study"), you MUST find which space on the plan it is, include it as its OWN room entry under that name, and design it for that function. An enclosed room reached by a step-down door or drawn like a porch is NOT a balcony/patio if the homeowner calls it a room — treat it as interior, with its own camera and its own render.
+` : ''}
 If it is NOT a 2D architectural floor plan (e.g. it is a photo of a room), output: {"is_floor_plan": false, "rooms": []}
 
 If it IS a floor plan, extract EVERY habitable room and output pure JSON:
@@ -47,7 +51,7 @@ Rules:
 - Include living/dining, kitchen, every bedroom, bathroom(s). Skip WC smaller than 2sqm, shelters, and corridors.
 - SANITY-CHECK every label against its geometry before trusting it (mislabeled balconies are classic in HDB plans).
 - Read window positions from the arc/line symbols on exterior walls; read dimensions from the printed mm numbers.
-- Camera always stands at a doorway or room corner INSIDE the room, looking toward the most characteristic wall (usually the window wall).
+- Camera always stands at a doorway or room corner INSIDE the room, looking toward the room's OWN main window wall. Never make an adjacent room's doorway the main subject — for LIVING/DINING the subject is the living area and ITS window band, not the opening into a neighbouring room (e.g. the study).
 - camera_px / look_at_px are pixel coordinates on the image as provided — be precise, they will be drawn on the plan and verified.
 - visible_from_camera must be derivable from the plan geometry: for a camera at camera_px facing look_at_px, say which features fall LEFT / RIGHT / AHEAD.
 - expected_components: trace the view cone on the plan and enumerate EVERY component it hits (walls, doors, openings, windows, thresholds) with bearing and distance. Include NON-RECTANGULAR geometry explicitly: angled/chamfered corners (corner units often have one, look for short diagonal dimension lines like "343"), columns, recesses — if the view cone hits an angled corner wall, it MUST be in the manifest with its bearing. This manifest is the ground truth a renderer must reproduce and an auditor will check item by item — completeness matters more than brevity.
