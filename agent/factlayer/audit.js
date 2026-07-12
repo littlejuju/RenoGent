@@ -28,6 +28,7 @@ Audit in THREE LAYERS, in this exact order. Layer 1 and 2 violations are FATAL (
 
 LAYER 1 — COMPONENTS (walls, doors, windows, openings, beams, columns):
 Step A: look ONLY at the render and list every architectural component you see, with bearing left/center/right and near/far. Ignore furniture.
+Step A2 (independent viewpoint check — do this BEFORE consulting the manifest): the ORIGINAL shows the ENTIRE floor plan. From your Step A component list alone, judge which room and camera position on the plan this render actually matches best — it may NOT be the marked one. If the render matches a different room or a different viewpoint better than the marked camera (e.g. it reads as "bedroom looking into the study" rather than the marked position), that is a room-identity violation; name the room/viewpoint it actually resembles and the components that gave it away.
 Step B: reconcile against the manifest (or, without a manifest, against the marked view cone on the plan):
   - manifest component MISSING → violation (component-missing)
   - render component NOT in the manifest → violation (component-invented), UNLESS the brief explicitly justifies it AND the plan geometry permits it there (e.g. "open concept kitchen" may only open the wall that actually borders the kitchen, in its actual position)

@@ -163,7 +163,13 @@ async function onboardImage(m, srcChat) {
       else if (stage === 'done') {
         if (payload.cameraPlan)
           await say(`📍 ${room.name} — viewpoint for render #${payload.hash}: red dot = where you stand, arrow = where you look.\nFrom here you should see: ${room.visible_from_camera || room.camera}`, payload.cameraPlan)
-        await say(`📐 ${room.name} — render #${payload.hash || 'n/a'} · audit ${payload.audit?.pass ? '✅ PASSED (viewpoint & geometry match the plan)' : payload.audit ? `⚠️ ${(payload.audit.violations || []).length} issue(s) remain, escalated` : 'skipped'}`, payload.file)
+        const v = payload.audit?.violations || []
+        const verdict = payload.audit?.pass
+          ? '✅ PASSED (viewpoint & geometry match the plan)'
+          : payload.audit
+            ? `⚠️ NOT passed — ${v.length} issue(s) remain, escalated to you:\n${v.map((x) => `• L${x.layer || '?'} [${x.element}] ${x.evidence}`).join('\n')}${payload.audit.room ? `\nAuditor's independent read of the render: ${payload.audit.room}` : ''}`
+            : 'skipped (audit errored)'
+        await say(`📐 ${room.name} — render #${payload.hash || 'n/a'} · audit ${verdict}`, payload.file)
       }
       else if (stage === 'error') await say(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
     })

@@ -62,6 +62,9 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
   await onProgress('briefs', null, null)
   const briefs = await readPlanBriefs(path.resolve(planPath))
   if (!briefs.is_floor_plan) return { is_floor_plan: false, results: [] }
+  // persist the fact layer: briefs are the single source of truth for both the
+  // renderer and the auditor — they must be reviewable after the fact
+  fs.writeFileSync(planPath.replace(/\.[a-z]+$/i, '-briefs.json'), JSON.stringify(briefs, null, 2))
   const results = []
   for (const room of briefs.rooms) {
     const slug = room.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -90,7 +93,7 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
       const r = { room: room.name, file: out, hash, cameraPlan, audit }
       results.push(r)
       fs.appendFileSync(path.join(path.dirname(planPath), 'render-audit-log.jsonl'),
-        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash, render: out, viewpoint_plan: cameraPlan, audit_pass: audit?.pass ?? null, violations: audit?.violations?.length ?? null }) + '\n')
+        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash, render: out, viewpoint_plan: cameraPlan, audit_pass: audit?.pass ?? null, violations: audit?.violations?.length ?? null, audit }) + '\n')
       await onProgress('done', room, r)
     } catch (e) {
       results.push({ room: room.name, error: e.message })

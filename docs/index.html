@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RenoAI — the AI renovator in your WhatsApp</title>
+<meta name="description" content="ID-level design, HDB compliance and contractor supervision for Singapore homeowners — inside the WhatsApp you already use. Human approves everything.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<style>
+  :root{
+    --ink:#2b2320; --ink-soft:#6b5d55; --paper:#faf7f2; --card:#ffffff;
+    --oak:#b8865a; --oak-deep:#8a5f38; --line:#e8dfd4;
+    --green:#2e7d4f; --amber:#b07c1f; --red:#b03a2e;
+    --wa:#25d366;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+  a{color:var(--oak-deep)}
+  h1,h2,h3{line-height:1.2;letter-spacing:-.01em}
+  section{padding:72px 0}
+  .kicker{font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--oak-deep);margin-bottom:12px}
+  h2{font-size:clamp(1.5rem,3.5vw,2.1rem);margin-bottom:14px}
+  .lede{color:var(--ink-soft);max-width:640px;font-size:1.05rem}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:10;background:rgba(250,247,242,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .logo{font-weight:800;font-size:1.15rem;text-decoration:none;color:var(--ink)}
+  .logo span{color:var(--oak-deep)}
+  .nav-links{display:flex;gap:20px;align-items:center;font-size:.92rem}
+  .nav-links a{text-decoration:none;color:var(--ink-soft)}
+  .gh{border:1.5px solid var(--ink);border-radius:8px;padding:6px 14px;color:var(--ink)!important;font-weight:600}
+
+  /* hero */
+  .hero{padding:88px 0 64px;text-align:center}
+  .hero h1{font-size:clamp(2rem,5.5vw,3.3rem);max-width:820px;margin:0 auto 20px}
+  .hero h1 em{font-style:normal;color:var(--oak-deep)}
+  .hero p{max-width:620px;margin:0 auto 32px;color:var(--ink-soft);font-size:1.12rem}
+  .cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:40px}
+  .btn{display:inline-block;padding:13px 26px;border-radius:10px;font-weight:700;text-decoration:none;font-size:1rem}
+  .btn-primary{background:var(--ink);color:#fff}
+  .btn-ghost{border:1.5px solid var(--line);color:var(--ink);background:var(--card)}
+  .stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 20px;text-align:left}
+  .stat b{display:block;font-size:1.25rem}
+  .stat small{color:var(--ink-soft)}
+
+  /* origin strip */
+  .origin{background:var(--ink);color:#efe8e0;padding:40px 0}
+  .origin .wrap{display:flex;gap:24px;align-items:center;flex-wrap:wrap;justify-content:center;text-align:center}
+  .origin p{max-width:760px;font-size:1.05rem}
+  .origin b{color:#f3c98b}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:36px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .step .n{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--oak);color:#fff;
+    align-items:center;justify-content:center;font-weight:800;margin-bottom:12px}
+  .step h3{font-size:1.02rem;margin-bottom:6px}
+  .step p{font-size:.9rem;color:var(--ink-soft)}
+  .step code{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.82em}
+
+  /* proof / render pair */
+  .proof-bg{background:linear-gradient(180deg,#f3ece2,var(--paper))}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:32px}
+  .pair figure{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .pair img{width:100%;display:block}
+  .pair figcaption{padding:12px 16px;font-size:.85rem;color:var(--ink-soft)}
+  .pair figcaption b{color:var(--ink)}
+  .hashtag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.8em}
+  .audit-note{margin-top:20px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--oak);border-radius:10px;padding:16px 20px;font-size:.95rem}
+
+  /* capabilities */
+  .caps{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:36px}
+  .cap{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
+  .cap .ico{font-size:1.6rem;margin-bottom:10px}
+  .cap h3{font-size:1.05rem;margin-bottom:8px}
+  .cap p{font-size:.92rem;color:var(--ink-soft)}
+  .cap .gate{display:inline-block;margin-top:12px;background:#fff8dc;border:1px solid #d9b44a;border-radius:6px;
+    padding:3px 10px;font-size:.8rem;font-weight:600;color:#7a5c00}
+  .traffic{font-weight:700}
+  .g{color:var(--green)}.a{color:var(--amber)}.r{color:var(--red)}
+
+  /* privacy + boundary */
+  .twin{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .panel{border-radius:14px;padding:28px}
+  .panel h3{font-size:1.1rem;margin-bottom:12px}
+  .panel ul{list-style:none}
+  .panel li{padding:6px 0 6px 26px;position:relative;font-size:.95rem}
+  .panel li::before{content:"✓";position:absolute;left:0;font-weight:800}
+  .privacy{background:var(--card);border:1px solid var(--line)}
+  .privacy li::before{color:var(--green)}
+  .boundary{background:#fdf3f2;border:1.5px dashed var(--red)}
+  .boundary li::before{content:"⛔";font-size:.8em;top:9px}
+  .boundary p{font-size:.95rem;color:#7c2d25}
+
+  footer{border-top:1px solid var(--line);padding:36px 0;font-size:.88rem;color:var(--ink-soft)}
+  .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+  @media (max-width:720px){
+    .pair,.twin{grid-template-columns:1fr}
+    section{padding:52px 0}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-in">
+    <a class="logo" href="#">Reno<span>AI</span></a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#proof">Verified renders</a>
+      <a href="#caps">Capabilities</a>
+      <a class="gh" href="https://github.com/littlejuju/RenoAI">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <h1>Your renovation deserves a supervisor.<br><em>Not a 40% markup.</em></h1>
+  <p>RenoAI gives Singapore HDB homeowners designer-level renders, compliance checks and
+  contractor supervision — inside the WhatsApp you already use. The agent does the coordination;
+  <strong>you approve every decision.</strong></p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="#how">See how it works</a>
+    <a class="btn btn-ghost" href="https://github.com/littlejuju/RenoAI">View the code</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>2,171</b><small>real WhatsApp messages it was built on</small></div>
+    <div class="stat"><b>9 months</b><small>of a real renovation dispute, distilled</small></div>
+    <div class="stat"><b>0 new apps</b><small>rides your own WhatsApp identity</small></div>
+  </div>
+</header>
+
+<div class="origin">
+  <div class="wrap">
+    <p>RenoAI was born from a <b>real 9-month renovation dispute</b> — 2,171 messages between a
+    homeowner and an interior design firm, peaking at <b>715 messages in a single crisis month</b>.
+    Every promise that slipped, every spec that silently changed, every "can one lah" that couldn't —
+    that's the job this agent was built to do better.</p>
+  </div>
+</div>
+
+<section id="how" class="wrap">
+  <div class="kicker">How you use it</div>
+  <h2>No new app. Four steps in WhatsApp.</h2>
+  <p class="lede">Renovation coordination in Singapore already lives in WhatsApp. So does RenoAI —
+  contractors see a well-organized homeowner, never a bot.</p>
+  <div class="steps">
+    <div class="step"><span class="n">1</span>
+      <h3>Link once</h3>
+      <p>Scan a QR from your phone — the exact same gesture as WhatsApp Web. That's the whole install.</p>
+    </div>
+    <div class="step"><span class="n">2</span>
+      <h3>Create your family console</h3>
+      <p>A WhatsApp group for your household. Group membership <em>is</em> the permission system —
+      either spouse can feed the agent and approve its actions.</p>
+    </div>
+    <div class="step"><span class="n">3</span>
+      <h3>Feed it your plans</h3>
+      <p>Drop your floor plan and a one-line brief. Get back per-room renders, a verified structural
+      fact layer, and <span class="traffic"><span class="g">green</span>/<span class="a">amber</span>/<span class="r">red</span></span> compliance triage with verbatim HDB citations.</p>
+    </div>
+    <div class="step"><span class="n">4</span>
+      <h3>Supervise on autopilot</h3>
+      <p>The agent watches your contractor group, logs every promise, chases every slip — and drafts
+      the message. You reply <code>ok</code> to send it as yourself.</p>
+    </div>
+  </div>
+</section>
+
+<section id="proof" class="proof-bg">
+  <div class="wrap">
+    <div class="kicker">Renders you can verify</div>
+    <h2>Every render is audited against your floor plan.</h2>
+    <p class="lede">AI renders love to invent windows and stretch rooms. RenoAI doesn't get to:
+    each render is hash-paired to a stamped copy of your plan showing exactly where the camera
+    stands — then machine-audited in three ordered layers.</p>
+    <div class="pair">
+      <figure>
+        <img src="assets/viewpoint-living.jpg" alt="Floor plan with camera position marker and view cone for the living/dining render">
+        <figcaption><b>1 · The viewpoint plan.</b> Red dot = camera, cone = what it sees, stamped with
+        the render's content hash <span class="hashtag">#2fa2fa4b</span>. The pair can't be mixed up.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/render-living.jpg" alt="AI render of the living/dining room in warm oak and ivory style">
+        <figcaption><b>2 · The constrained render.</b> Living/dining, homeowner's brief: oak vinyl,
+        warm ivory, open-concept kitchen. Hash <span class="hashtag">#2fa2fa4b</span> matches the plan above.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/viewpoint-kitchen.jpg" alt="Floor plan with camera marker for the kitchen render">
+        <figcaption><b>Kitchen viewpoint</b> <span class="hashtag">#6bb4f341</span> — camera at the service
+        passage, looking across the counter run.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/render-kitchen.jpg" alt="AI render of the HDB kitchen">
+        <figcaption><b>Kitchen render</b> <span class="hashtag">#6bb4f341</span> — HDB typology enforced:
+        window band above the counter, solid parapet, no invented balconies.</figcaption>
+      </figure>
+    </div>
+    <div class="audit-note">
+      <strong>The three-layer audit</strong> — ① components: every wall, door, window, beam and column
+      reconciled against a manifest traced from your plan; ② depth &amp; scale: room proportions checked
+      against the plan's printed dimensions; ③ style &amp; HDB typology. Fail layers 1–2 and the render is
+      re-edited or escalated to you — never silently shipped.
+    </div>
+  </div>
+</section>
+
+<section id="caps" class="wrap">
+  <div class="kicker">Capabilities</div>
+  <h2>The agent executes. The human decides.</h2>
+  <div class="caps">
+    <div class="cap"><div class="ico">📐</div>
+      <h3>Fact layer</h3>
+      <p>Your floor plan becomes an immutable, metric-grounded ground truth: mm/px calibration from
+      printed dimensions, per-room structural briefs, every overlay diff-checked against it.</p>
+    </div>
+    <div class="cap"><div class="ico">🎨</div>
+      <h3>Design &amp; render</h3>
+      <p>Structure-locked, per-room renders constrained by your actual walls, windows and HDB typology —
+      generate → audit → surgical re-edit, in a loop.</p>
+      <span class="gate">👤 you sign off on taste</span>
+    </div>
+    <div class="cap"><div class="ico">🚦</div>
+      <h3>Compliance triage</h3>
+      <p><span class="traffic"><span class="g">Green</span> / <span class="a">amber</span> / <span class="r">red</span></span> against a scraped hdb.gov.sg corpus. A citation gate rejects any rule
+      quote that doesn't match the source verbatim — no hallucinated regulations.</p>
+    </div>
+    <div class="cap"><div class="ico">🛒</div>
+      <h3>Procurement that learns you</h3>
+      <p>Contractor sends a 40-page catalog? You get a top-3 with pros &amp; cons. After a few picks the
+      agent learns your decision profile and pre-selects — you just confirm.</p>
+      <span class="gate">👤 you confirm every pick</span>
+    </div>
+    <div class="cap"><div class="ico">📒</div>
+      <h3>Supervision &amp; the promise ledger</h3>
+      <p>"Tiling done by Friday" gets logged the moment it's said. Slippage detection is mechanical;
+      chase messages are drafted for you and sent as you.</p>
+      <span class="gate">👤 nothing sent without your ok</span>
+    </div>
+    <div class="cap"><div class="ico">🔒</div>
+      <h3>Privacy by whitelist</h3>
+      <p>The agent subscribes to exactly two chats — your family console and your renovation group.
+      Everything else is dropped at the event entry point: not read, not parsed, not stored.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="twin">
+    <div class="panel privacy">
+      <h3>🔐 The trust model</h3>
+      <ul>
+        <li>Rides <em>your</em> WhatsApp — no bot number, no platform in the middle</li>
+        <li>Family console group = access control; either spouse approves</li>
+        <li>Whitelist of 2 chats; all other conversations never enter the pipeline</li>
+        <li>Every outgoing message passes a human approval gate — by design, the automation
+            channel physically cannot release a live message</li>
+      </ul>
+    </div>
+    <div class="panel boundary">
+      <h3>⛔ The boundary that never bends</h3>
+      <p style="margin-bottom:10px">RenoAI is <strong>decision support</strong>. It does not replace licensed professionals:</p>
+      <ul>
+        <li>Structural works — executed by HDB-registered contractors, under permit</li>
+        <li>Permits &amp; submissions — licensed pros, always</li>
+        <li>Final sign-off on anything irreversible — the homeowner, always</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div><strong>RenoAI</strong> · built for BUIDL Quests 2026 (OPC / Super Individuals track)</div>
+    <div><a href="https://github.com/littlejuju/RenoAI">github.com/littlejuju/RenoAI</a></div>
+  </div>
+</footer>
+
+</body>
+</html>
