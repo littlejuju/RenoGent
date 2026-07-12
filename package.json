@@ -13,5 +13,8 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "qrcode": "^1.5.4",
     "whatsapp-web.js": "^1.26.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

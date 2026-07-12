@@ -17,6 +17,8 @@
 npm ci && npm run demo     # offline — replays recorded outputs of the real pipeline, no API key needed
 ```
 
+Node 18+, no other setup. Verified on a fresh clone: install + demo under a minute.
+
 Three things worth your attention:
 1. **The citation gate** — every HDB rule the agent cites is machine-verified as a verbatim substring of the scraped hdb.gov.sg corpus (`agent/compliance/`). Hallucinated regulation cannot reach the user.
 2. **Hash-paired render audits** — every render ships with a stamped plan copy proving where its camera stands, then a 3-layer audit; structural failures are never released (`agent/factlayer/`, images below).
