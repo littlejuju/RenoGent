@@ -1,0 +1,13 @@
+node_modules/
+.env
+*.log
+qr*.png
+wwebjs_auth/
+auth/
+.wwebjs_cache/
+__pycache__/
+*.pyc
+.DS_Store
+# raw PII material lives outside this repo and must never enter it
+raw/
+sanitize-patterns.txt
