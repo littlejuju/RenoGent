@@ -60,8 +60,15 @@ const isAgentPost = (body) => AGENT_MARKS.some((m) => (body || '').startsWith(m)
 
 async function toConsole(text, mediaPath = null) {
   if (!consoleChat) return console.log(`(console offline) ${text}`)
-  if (mediaPath) return client.sendMessage(consoleChat.id._serialized, MessageMedia.fromFilePath(mediaPath), { caption: text })
-  return client.sendMessage(consoleChat.id._serialized, text)
+  for (let i = 0; i < 2; i++) {
+    try {
+      if (mediaPath) return await client.sendMessage(consoleChat.id._serialized, MessageMedia.fromFilePath(mediaPath), { caption: text })
+      return await client.sendMessage(consoleChat.id._serialized, text)
+    } catch (e) {
+      log('ERR', `toConsole attempt ${i + 1} failed: ${e.message.slice(0, 120)}`)
+      await new Promise((r) => setTimeout(r, 3000))
+    }
+  }
 }
 
 async function propose(chatId, label, text) {
@@ -178,7 +185,7 @@ async function chaseSlippage() {
   if (!renoChat) return
   for (const s of ledger.slipped().slice(0, 3)) {
     const draft = await askClaude(
-      `Commitment ${s.id}: "${s.item}" was promised for ${s.promised_date} by ${s.who} (their words: "${s.source_msg}"). It is now overdue. Draft a firm but polite WhatsApp chase message from the homeowner citing the original promise and date, asking for a concrete new completion date. <=50 words, message text only.`,
+      `Commitment ${s.id}: "${s.item}" was promised for ${s.promised_date} by ${s.who} (their words: "${s.source_msg}"). It is now overdue. Draft a firm but polite WhatsApp chase message from the homeowner citing the original promise and date, asking for a concrete new completion date. Address them directly as "${s.who}" — NO placeholders or square brackets. <=50 words, message text only.`,
       { maxTokens: 300 }
     )
     await propose(renoChat.id._serialized, `${renoChat.name} (chase ${s.id})`, draft.trim())
@@ -221,6 +228,10 @@ client.on('ready', async () => {
   client.on('message', route)
   client.on('message_create', (m) => { if (m.fromMe) route(m) })
 })
+
+// a single failed puppeteer call must never take the supervisor down
+process.on('unhandledRejection', (e) => log('ERR', `unhandled: ${String(e?.message || e).slice(0, 200)}`))
+process.on('uncaughtException', (e) => log('ERR', `uncaught: ${String(e?.message || e).slice(0, 200)}`))
 
 const rl = readline.createInterface({ input: process.stdin })
 rl.on('line', async (line) => { await decide(line) })
