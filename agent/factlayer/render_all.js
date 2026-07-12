@@ -146,9 +146,11 @@ async function attemptRoom(planPath, room, slug, style, onProgress) {
 // roomFilter: substring match on room name → re-render just that room ("redo kitchen"),
 // reusing the persisted briefs instead of re-reading the plan.
 export async function renderAllRooms(planPath, style, onProgress = () => {}, roomFilter = null) {
+  // briefs cache is keyed to the plan file path — a re-upload gets a new
+  // filename, so an existing cache is always valid for this exact plan
   const briefsPath = planPath.replace(/\.[a-z]+$/i, '-briefs.json')
   let briefs
-  if (roomFilter && fs.existsSync(briefsPath)) {
+  if (fs.existsSync(briefsPath)) {
     briefs = JSON.parse(fs.readFileSync(briefsPath, 'utf8'))
   } else {
     await onProgress('briefs', null, null)
