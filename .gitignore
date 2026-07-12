@@ -14,3 +14,7 @@ sanitize-patterns.txt
 demo/inbox/
 demo/ledger.json
 demo/cmd.txt
+demo/*.pid
+demo/supervisor*.log
+demo/recorded/.demo-ledger.json
+demo/lastplan.json

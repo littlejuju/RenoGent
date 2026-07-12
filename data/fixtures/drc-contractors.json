@@ -1,0 +1,10 @@
+{
+  "_note": "SAMPLE dataset for demo purposes — names are fictional. Production version matches against HDB's public Directory of Renovation Contractors (DRC).",
+  "contractors": [
+    { "name": "Sample Contractor A Pte Ltd", "drc_no": "DRC-SAMPLE-001", "trades": ["flooring", "tiling", "carpentry"], "hdb_projects_5y": 62, "typical_band": "mid", "areas": ["Queenstown", "Clementi", "Bukit Merah"] },
+    { "name": "Sample Contractor B Renovation", "drc_no": "DRC-SAMPLE-002", "trades": ["hacking", "masonry", "plumbing"], "hdb_projects_5y": 41, "typical_band": "value", "areas": ["Toa Payoh", "Ang Mo Kio"] },
+    { "name": "Sample Contractor C Interiors", "drc_no": "DRC-SAMPLE-003", "trades": ["carpentry", "painting", "flooring"], "hdb_projects_5y": 87, "typical_band": "premium", "areas": ["Tampines", "Bedok", "Queenstown"] },
+    { "name": "Sample Electrical Works D", "drc_no": "DRC-SAMPLE-004", "trades": ["electrical", "lighting"], "hdb_projects_5y": 120, "typical_band": "mid", "areas": ["island-wide"] },
+    { "name": "Sample Contractor E Builders", "drc_no": "DRC-SAMPLE-005", "trades": ["hacking", "tiling", "plumbing", "masonry"], "hdb_projects_5y": 55, "typical_band": "mid", "areas": ["Jurong", "Clementi", "Queenstown"] }
+  ]
+}

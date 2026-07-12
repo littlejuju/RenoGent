@@ -1,4 +1,8 @@
 {
-  "reno_group": "renoai demo",
-  "console_groups": ["reno agent console - test", "reno agent console claude"]
+  "reno_group": "renogent demo - contractors",
+  "console_groups": [
+    "renogent demo - console",
+    "reno agent console - test",
+    "reno agent console claude"
+  ]
 }

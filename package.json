@@ -4,7 +4,9 @@
   "description": "An AI renovator that replaces your interior designer's coordination layer",
   "type": "module",
   "scripts": {
+    "demo": "node demo/run_demo.js",
     "triage": "node agent/compliance/triage.js",
+    "rfq": "node agent/rfq/rfq.js generate demo/recorded/triage-output.json",
     "supervise": "node agent/bridge/supervisor.js"
   },
   "dependencies": {

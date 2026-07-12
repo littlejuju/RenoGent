@@ -11,12 +11,23 @@
   <a href="#whats-real-vs-staged-honest-disclosure">What's real</a>
 </p>
 
+## Judges: 60 seconds
+
+```bash
+npm ci && npm run demo     # offline — replays recorded outputs of the real pipeline, no API key needed
+```
+
+Three things worth your attention:
+1. **The citation gate** — every HDB rule the agent cites is machine-verified as a verbatim substring of the scraped hdb.gov.sg corpus (`agent/compliance/`). Hallucinated regulation cannot reach the user.
+2. **Hash-paired render audits** — every render ships with a stamped plan copy proving where its camera stands, then a 3-layer audit; structural failures are never released (`agent/factlayer/`, images below).
+3. **The human gate** — every outgoing WhatsApp message needs an explicit human `ok`; the automation channel physically cannot release one (`agent/bridge/supervisor.js`).
+
 ## TL;DR
 
 - **Track:** OPC / Super Individuals (primary) — also fits Autonomous Agents
 - **What:** An agentic service that gives Singapore HDB homeowners ID-level design, compliance and supervision — at contractor-direct prices. The agent does the coordination work an interior design firm charges 30–50% markup for; the human keeps taste sign-off and final approval.
 - **Why us:** Built on a **real 9-month renovation dispute** — 2,171 WhatsApp messages between a homeowner and an ID firm (peak crisis month: 715 messages). Every demo step runs on this real data, not synthetic fixtures.
-- **Where it lives:** Not another app. Renovation coordination in Singapore happens in WhatsApp — the agent rides the homeowner's own WhatsApp identity; approvals happen in your "Message Yourself" chat. Contractors see a well-organized homeowner, not a bot.
+- **Where it lives:** Not another app. Renovation coordination in Singapore happens in WhatsApp — RenoGent drafts inside your private homeowner console, and nothing is sent until a human approves. Human-approved delegation, not automation without oversight.
 - **Stack:** Claude Code + Claude API (vision + tool use) for floor-plan reading, compliance triage and message drafting; Replicate (nano-banana) for structure-locked renders; whatsapp-web.js for a live WhatsApp supervision bridge.
 
 ## How you use it (no new app)
@@ -101,7 +112,7 @@ violations listed — never silently shipped.
 1. **Floor plan → immutable fact layer.** mm/px calibration from printed dimension lines, per-room structural briefs (walls, windows, camera, fixtures, expected-component manifests), persisted as the single reviewable ground truth.
 2. **Constrained render + 3-layer audit.** Generate → audit against the fact layer → surgical re-edit or fresh base → honest escalation (see above).
 3. **Compliance triage.** Work items classified green/amber/red against HDB rules; a citation-verification gate rejects any rule citation that does not verbatim-match our scraped hdb.gov.sg corpus (`data/hdb_corpus/`).
-4. **Procurement that learns you.** Catalog → top-3 with pros/cons; your picks distill into a decision profile (priority rules with evidence); later catalogs are auto-picked under that profile, human confirm required.
+4. **Procurement that learns you.** Catalog → top-3 with pros/cons; your picks distill into a decision profile (priority rules with evidence); later catalogs are auto-picked under that profile, human confirm required. Approved scope compiles into line-item RFQs with a shortlist of HDB DRC-registered contractors matched to the works (sample dataset in the demo).
 5. **WhatsApp supervision + PM.** Live bridge logs contractor promises into the ledger, chases slippage, drafts escalations — a human approves every outgoing message. Weekly report: progress, blockers, budget vs cap, and acceptance checklists for completed work.
 
 ## Repo layout

@@ -1,0 +1,46 @@
+Here's the RFQ, ready to paste into WhatsApp/email:
+
+---
+
+**REQUEST FOR QUOTATION — HDB RENOVATION WORKS**
+
+Dear Contractor,
+
+Please provide an itemised quotation for the works listed below. Requirements for your quote to be considered:
+
+1. **Itemised pricing only** — no lump-sum pricing. Provide a unit price for each line item separately.
+2. **Committed completion date** for each line item (not just an overall project end date).
+3. **DRC (Direct Renovation Contractor) registration number** — please state your HDB DRC registration number in your reply. Quotes without a valid DRC number will not be considered.
+4. Please confirm in writing that you will obtain all HDB permits noted below **before** commencing the relevant works, and that permit costs/timelines are reflected in your price and completion date.
+
+---
+
+**ITEM W1**
+Description: Hack the partition wall between the converted-balcony study and the living room to open up the space.
+Compliance conditions contractor must price in: This is a demolition/alteration of an internal partition wall and requires **prior written HDB approval/permit before work starts**. If any RC (reinforced concrete) structural elements are affected, a Professional Engineer (PE) must supervise the works — include PE supervision cost if applicable.
+Unit price: ______________
+Committed completion date: ______________
+
+**ITEM W3**
+Description: Drill into the household shelter wall to mount a storage shelf.
+Compliance conditions contractor must price in: No HDB permit required, but works must comply with: (a) non-metallic inserts/screws only, max 50mm drilling depth; (b) fixtures must be removable within 48 hours if HDB requires shelter reinstatement for wartime use. Confirm materials used meet this.
+Unit price: ______________
+Committed completion date: ______________
+
+**ITEM W5**
+Description: Install a plaster false ceiling with cove lighting in the living room.
+Compliance conditions contractor must price in: No HDB permit required, but must use a **suspended false ceiling system** (not wet plastering directly onto the RC ceiling slab, which is disallowed), non-combustible materials, and maintain minimum 2.4m clearance from finished floor level.
+Unit price: ______________
+Committed completion date: ______________
+
+**ITEM W6**
+Description: Repaint all bedroom walls and replace bedroom door.
+Compliance conditions: None (no HDB permit required).
+Unit price: ______________
+Committed completion date: ______________
+
+---
+
+**TOTAL (sum of itemised prices):** ______________
+
+Please return this quotation with all fields completed. Thank you.
