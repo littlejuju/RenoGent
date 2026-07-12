@@ -52,7 +52,7 @@ Output pure JSON only, no prose:
 {"room": "which room + camera position, or 'unverifiable'", "components_seen": ["render components with bearings"], "scale_check": "one line: do proportions/depth match the plan dims?", "pass": bool, "violations": [{"layer": 1, "element": "component-missing|component-invented|component-misplaced|structure|room-identity|depth-scale|hdb-typology|window|door|wall|ceiling|style", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`
   const { stdout } = await execFileP('claude', ['-p', prompt, '--model', MODEL, '--allowedTools', 'Read'], {
     encoding: 'utf8',
-    timeout: 240000,
+    timeout: 420000,
     maxBuffer: 8 * 1024 * 1024,
   })
   return parseJson(stdout)

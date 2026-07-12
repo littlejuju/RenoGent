@@ -54,7 +54,7 @@ Rules:
 - Output pure JSON only.`
   const { stdout } = await execFileP('claude', ['-p', prompt, '--model', MODEL, '--allowedTools', 'Read'], {
     encoding: 'utf8',
-    timeout: 300000,
+    timeout: 600000,
     maxBuffer: 8 * 1024 * 1024,
   })
   return parseJson(stdout)
