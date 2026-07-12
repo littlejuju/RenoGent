@@ -483,6 +483,25 @@ async function handleCommand(line) {
     } else if (cmd === 'doc' && playground) {
       await client.sendMessage(playground.id._serialized, MessageMedia.fromFilePath(rest[0]), { caption: rest.slice(1).join(' '), sendMediaAsDocument: true })
       log('CMD', `doc posted to "${playground.name}": ${rest[0]}`)
+    } else if (cmd === 'rerun') {
+      // homeowner-requested: re-run the whole flat (or one room) from the cached
+      // plan, reporting to the PRIMARY console. Only console status posts — the
+      // human send-gate for outbound messages is untouched.
+      if (!lastPlan) { log('CMD', 'rerun refused: no cached plan'); return }
+      const target = consoleChats[0]
+      const say2 = (t, mp = null) => toConsole(t, mp, target)
+      const roomFilter = rest.join(' ').trim() || null
+      log('CMD', `rerun ${roomFilter || 'whole flat'} from ${lastPlan.file}`)
+      await say2(`🎨 Re-running ${roomFilter || 'every room'} under the new structural gate (L1/L2 violations = no image released). Briefs are cached — first render starts now.`)
+      const { renderAllRooms } = await import('../factlayer/render_all.js')
+      renderAllRooms(lastPlan.file, lastPlan.style, renderProgressCb(say2), roomFilter)
+        .then(async (res) => {
+          const passed = res.results.filter((r) => r.status === 'passed').length
+          const styleQ = res.results.filter((r) => r.status === 'style-escalation').length
+          const blocked = res.results.filter((r) => r.status === 'blocked').length
+          await say2(`🏁 Re-run complete: ✅ ${passed} passed · 🟡 ${styleQ} structure-verified with style questions · ❌ ${blocked} blocked (no image). "redo <room>" to retry any.`)
+        })
+        .catch((e) => say2(`⚠️ rerun failed: ${String(e.message).slice(0, 140)}`))
     } else if (cmd === 'pick' && lastChoice) {
       if (lastChoice.origin !== 'test') { log('CMD', 'REFUSED: live selection card, human gate only'); return }
       await handleChoicePick(rest.join(' '), 'claude-cmd', 'test')
