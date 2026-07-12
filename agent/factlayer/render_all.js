@@ -75,7 +75,7 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
       let cameraPlan = await annotateCamera(planPath, room, slug, hash)
       await onProgress('audit', room, null)
       let audit = null
-      try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components) } catch {}
+      try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components, room.approx_size_mm || '') } catch {}
 
       if (audit && !audit.pass && audit.violations?.length) {
         await onProgress('fix', room, audit)
@@ -85,7 +85,7 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
         out = fixed
         hash = shortHash(out)
         cameraPlan = await annotateCamera(planPath, room, slug, hash) // re-stamp for the fixed render
-        try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components) } catch {}
+        try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components, room.approx_size_mm || '') } catch {}
       }
       const r = { room: room.name, file: out, hash, cameraPlan, audit }
       results.push(r)

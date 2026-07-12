@@ -1,7 +1,9 @@
-// Render audit hook — machine-checks a render against the original image
-// (photo or 2D floor plan) as ground truth, element by element:
-// windows → doors → walls/geometry → ceiling → beams & columns.
-// Violations come back as surgical edit instructions for the image model.
+// Render audit hook — machine-checks a render against the plan/photo ground
+// truth in three ordered layers:
+//   L1 components (walls, doors, windows, beams, columns) — manifest reconcile
+//   L2 depth & scale (景深/尺度) — room proportions vs the plan's printed mm
+//   L3 typology & style compliance (HDB rules, brief adherence)
+// L1/L2 violations are fatal. Violations come back as surgical edit instructions.
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { parseJson } from '../llm.js'
@@ -9,38 +11,41 @@ import { parseJson } from '../llm.js'
 const execFileP = promisify(execFile)
 const MODEL = process.env.RENOAI_MODEL || 'claude-sonnet-5'
 
-export async function auditRender(originalPath, renderPath, brief = '', expectedRoom = '', expectedComponents = null) {
+export async function auditRender(originalPath, renderPath, brief = '', expectedRoom = '', expectedComponents = null, sizeMm = '') {
   const manifest = expectedComponents?.length
-    ? `EXPECTED COMPONENT MANIFEST (traced from the plan for this exact camera — this is the complete list of what the render may contain):
-${JSON.stringify(expectedComponents, null, 1)}
-
-TWO-STEP COMPONENT AUDIT (do this FIRST, before anything else):
-Step A — look ONLY at the render: list every architectural component you see (windows, doors, openings, visible adjacent rooms, wall segments, thresholds) with bearing left/center/right and near/far. Ignore furniture.
-Step B — reconcile against the manifest:
-  - manifest component MISSING from the render → violation
-  - render component NOT in the manifest → violation (invented geometry), UNLESS the renovation brief explicitly justifies it (e.g. "open concept kitchen" may open a wall THAT BORDERS THE KITCHEN per the plan — position must still match the plan)
-  - component present but wrong bearing/distance → violation
-` : ''
+    ? `EXPECTED COMPONENT MANIFEST (traced from the plan for this exact camera — the complete list of what the render may contain):
+${JSON.stringify(expectedComponents, null, 1)}`
+    : ''
   const prompt = `Read and visually compare these two images:
 ORIGINAL (ground truth / fact layer): ${originalPath}
 AI RENDER after renovation: ${renderPath}
-${brief ? `Renovation brief (changes the brief requests are ALLOWED): ${brief}` : ''}
-${expectedRoom ? `The render is SUPPOSED to depict: ${expectedRoom}. Judge room identity against the plan's geometry for THAT room (its window walls, door positions, proportions).` : ''}
+${brief ? `Renovation brief (changes the brief requests are ALLOWED, but only where the plan geometry permits them): ${brief}` : ''}
+${expectedRoom ? `The render is SUPPOSED to depict: ${expectedRoom}${sizeMm ? ` (approx ${sizeMm} per the plan's printed dimensions)` : ''}.` : ''}
 ${manifest}
+If the ORIGINAL is a floor plan with a RED DOT + ARROW/CONE marker: that marks the exact camera position and view direction the render MUST match.
 
-If the ORIGINAL is a floor plan with a RED DOT + ARROW/CONE marker: that marks the exact camera position and view direction the render MUST match. Derive what should be visible LEFT / RIGHT / AHEAD from that marker and verify the render against it.
+Audit in THREE LAYERS, in this exact order. Layer 1 and 2 violations are FATAL (pass=false regardless of layer 3).
 
-Audit the RENDER against the ORIGINAL, strictest first:
-0. ROOM IDENTITY: state which room of the original the render depicts and where the camera stands.${expectedRoom ? ` If it does not match the expected room (${expectedRoom}) — wrong window wall, wrong proportions, wrong adjacencies — that is a violation.` : ''} If the room cannot be identified from the geometry, that is itself a violation ("room identity unverifiable").
-1. HDB TYPOLOGY (domain prior — Singapore public housing): windows must be a horizontal band with a solid parapet wall below (sill ~1m above floor; in kitchens the sill sits ABOVE the counter/backsplash at ~1.1-1.2m), dark-framed casement/sliding panels, modestly sized relative to the wall. Floor-to-ceiling windows, curtain walls, or a balcony not present in the original = violation. Windows overlapping/cutting into counters, sinks or cabinets = violation (fixtures and windows occupy separate vertical zones). Ceiling ~2.6m, false ceiling only as perimeter L-box.
-2. WINDOWS: same count, same wall positions, same proportions as the original. Any extra or missing window = violation.
-3. DOORS: same count and wall positions.
-4. WALLS & GEOMETRY: same wall layout and camera angle; no invented openings, rooms or depth.
-5. CEILING: same false-ceiling shape unless the brief changes it.
-6. STRUCTURE: beams and columns visible in the original must remain in place.
+LAYER 1 — COMPONENTS (walls, doors, windows, openings, beams, columns):
+Step A: look ONLY at the render and list every architectural component you see, with bearing left/center/right and near/far. Ignore furniture.
+Step B: reconcile against the manifest (or, without a manifest, against the marked view cone on the plan):
+  - manifest component MISSING → violation (component-missing)
+  - render component NOT in the manifest → violation (component-invented), UNLESS the brief explicitly justifies it AND the plan geometry permits it there (e.g. "open concept kitchen" may only open the wall that actually borders the kitchen, in its actual position)
+  - present but wrong bearing/side → violation (component-misplaced)
+  - beams/columns on the plan inside the view must appear (structure)
+Room identity follows from this layer: if the component set matches a different room or no room, that is a room-identity violation.
+
+LAYER 2 — DEPTH & SCALE (景深/尺度):
+  - Room proportions must match the plan dimensions${sizeMm ? ` (${sizeMm})` : ''}: a 2.9m-wide bedroom must not render like a 5m hall; distance to the far wall must be plausible for the plan.
+  - Manifest distances (near/far) must be respected — a "far" hallway opening must not appear adjacent to the camera.
+  - Ceiling height ~2.6m; window band length proportional to its wall segment on the plan.
+
+LAYER 3 — TYPOLOGY & STYLE COMPLIANCE (only after layers 1-2):
+  - HDB typology: horizontal window band with solid parapet below (sill ~1m; kitchen sill above counter at ~1.1-1.2m), dark frames, modest size relative to the wall. No floor-to-ceiling windows, curtain walls, or balconies absent from the plan. Windows never overlap counters, sinks or cabinets.
+  - False ceiling only as perimeter L-box unless the brief says otherwise; style follows the brief.
 
 Output pure JSON only, no prose:
-{"room": "which room + camera position, or 'unverifiable'", "components_seen": ["what you saw in the render, with bearings"], "pass": bool, "violations": [{"element": "component-missing|component-invented|component-misplaced|room-identity|hdb-typology|window|door|wall|ceiling|structure", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`
+{"room": "which room + camera position, or 'unverifiable'", "components_seen": ["render components with bearings"], "scale_check": "one line: do proportions/depth match the plan dims?", "pass": bool, "violations": [{"layer": 1, "element": "component-missing|component-invented|component-misplaced|structure|room-identity|depth-scale|hdb-typology|window|door|wall|ceiling|style", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`
   const { stdout } = await execFileP('claude', ['-p', prompt, '--model', MODEL, '--allowedTools', 'Read'], {
     encoding: 'utf8',
     timeout: 240000,
