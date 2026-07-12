@@ -131,7 +131,11 @@ async function decide(text, approver = 'homeowner', via = 'wa') {
 }
 
 // ---------- console: floor-plan onboarding ----------
-let lastPlan = null // most recent floor-plan run: {file, style} — powers "redo <room>"
+// most recent floor-plan run: {file, style} — powers "redo <room>"; persisted so
+// redo survives supervisor restarts (briefs are cached next to the plan file)
+const LASTPLAN_FILE = path.join(ROOT, 'demo/lastplan.json')
+let lastPlan = fs.existsSync(LASTPLAN_FILE) ? JSON.parse(fs.readFileSync(LASTPLAN_FILE, 'utf8')) : null
+const setLastPlan = (p) => { lastPlan = p; fs.writeFileSync(LASTPLAN_FILE, JSON.stringify(p)) }
 
 // shared whole-flat progress reporter; `say` is scoped to whichever chat asked
 const renderProgressCb = (say) => async (stage, room, payload) => {
@@ -189,7 +193,7 @@ async function onboardImage(m, srcChat) {
     const { renderAllRooms } = await import('../factlayer/render_all.js')
     const style = m.body?.trim() || 'warm japandi style, matte oak flooring, warm cove lighting, linen curtains'
     await say(`📐 Received. Reading the plan into per-room briefs (fact layer), then rendering every room with your brief: "${style.slice(0, 120)}"…`)
-    lastPlan = { file, style }
+    setLastPlan({ file, style })
     const res = await renderAllRooms(file, style, renderProgressCb(say))
     if (res.is_floor_plan) {
       const passed = res.results.filter((r) => r.status === 'passed').length
