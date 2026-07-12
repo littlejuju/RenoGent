@@ -184,11 +184,14 @@ async function attemptRoom(planPath, room, slug, style, onProgress) {
       cur = next
     }
   }
-  // HARD RULE: only candidates that pass the release gate may be released.
-  // The gate includes primary audit, meta-audit, and any room-specific local
-  // hook. Everything else is quarantined even if a PNG exists on disk.
+  // HARD RULE: structural failures are NEVER released — L1/L2 audit violations,
+  // meta-audit fatals, a failed room-specific local hook, or a missing audit all
+  // quarantine the image. Style-only (L3) leftovers MAY ship as an escalation
+  // with the violations listed: taste is the human's call, geometry is not.
+  // (releaseGate.pass === true still required for a room to count as "passed".)
   const eligible = candidates.filter((c) =>
-    c.releaseGate?.pass && c.audit && fatalCount(c.audit) === 0 && metaFatalCount(c.metaAudit) === 0)
+    c.audit && fatalCount(c.audit) === 0 && metaFatalCount(c.metaAudit) === 0 &&
+    (c.releaseGate?.checks || []).every((h) => h.pass !== false))
   if (eligible.length) {
     const best = eligible.reduce((a, b) => (b.score < a.score ? b : a), eligible[0])
     return { candidates, best, blocked: false }

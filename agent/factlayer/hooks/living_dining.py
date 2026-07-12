@@ -131,22 +131,47 @@ def audit(path: Path) -> dict:
             }
         )
 
-    # Side-wall glazed-door suspicion: large bright rectangle in the left third,
-    # lower-middle, separated from the main far-wall band.
-    left_x0, left_x1 = int(w * 0.05), int(w * 0.34)
+    # Side-wall / balcony-opening suspicion: large bright rectangles in either
+    # side third, lower-middle, separated from the main far-wall band. The source
+    # plan has no Living/Dining balcony; the "BALCONY" label belongs to the
+    # kitchen/service-yard block, so an exterior recess beside the window wall is
+    # a hard failure.
     side_y0, side_y1 = int(h * 0.34), int(h * 0.72)
-    side_bright = sum(
-        1 for y in range(side_y0, side_y1) for x in range(left_x0, left_x1) if pix[x, y] >= 205
-    )
-    side_area = (left_x1 - left_x0) * (side_y1 - side_y0)
-    far_overlaps_left = wx0 < left_x1 and wy0 < side_y1 and wy1 > side_y0
-    if side_bright / side_area > 0.24 and not far_overlaps_left:
-        violations.append(
-            {
-                "element": "side_wall_glazed_door",
-                "evidence": "Large bright glazed rectangle detected on left side wall, not coplanar with the main window band.",
-            }
+    side_area_h = side_y1 - side_y0
+    side_specs = [
+        ("left", int(w * 0.05), int(w * 0.34)),
+        ("right", int(w * 0.66), int(w * 0.95)),
+    ]
+    for side, side_x0, side_x1 in side_specs:
+        side_bright = sum(
+            1 for y in range(side_y0, side_y1) for x in range(side_x0, side_x1) if pix[x, y] >= 205
         )
+        side_area = (side_x1 - side_x0) * side_area_h
+        far_overlaps_side = wx0 < side_x1 and wx1 > side_x0 and wy0 < side_y1 and wy1 > side_y0
+        if side_bright / side_area > 0.24 and not far_overlaps_side:
+            violations.append(
+                {
+                    "element": "balcony_or_side_glazed_opening",
+                    "evidence": f"Large bright glazed rectangle detected on the {side} side, separated from the main window band.",
+                }
+            )
+
+        if side == "right":
+            excess_x0, excess_x1 = max(side_x0, wx1 + 3), side_x1
+        else:
+            excess_x0, excess_x1 = side_x0, min(side_x1, wx0 - 3)
+        if excess_x1 > excess_x0:
+            excess_bright = sum(
+                1 for y in range(side_y0, side_y1) for x in range(excess_x0, excess_x1) if pix[x, y] >= 205
+            )
+            excess_area = (excess_x1 - excess_x0) * side_area_h
+            if excess_bright / excess_area > 0.28:
+                violations.append(
+                    {
+                        "element": "balcony_or_side_glazed_opening",
+                        "evidence": f"Bright exterior-looking opening detected beyond the {side} edge of the main window band.",
+                    }
+                )
 
     return {
         "path": str(path),

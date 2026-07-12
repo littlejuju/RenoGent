@@ -28,7 +28,7 @@ Three things worth your attention:
 
 - **Track:** OPC / Super Individuals (primary) — also fits Autonomous Agents
 - **What:** An agentic service that gives Singapore HDB homeowners ID-level design, compliance and supervision — at contractor-direct prices. The agent does the coordination work an interior design firm charges 30–50% markup for; the human keeps taste sign-off and final approval.
-- **Why us:** Built on a **real 9-month renovation dispute** — 2,171 WhatsApp messages between a homeowner and an ID firm (peak crisis month: 715 messages). Every demo step runs on this real data, not synthetic fixtures.
+- **Why us:** Built on a **real 9-month renovation dispute** — 2,171 WhatsApp messages between a homeowner and an ID firm (peak crisis month: 715 messages). The dispute, supervision and compliance demos run on this real data; the DRC contractor shortlist uses a clearly-labelled sample fixture.
 - **Where it lives:** Not another app. Renovation coordination in Singapore happens in WhatsApp — RenoGent drafts inside your private homeowner console, and nothing is sent until a human approves. But supervision is the training set, not the ceiling: every approval teaches the agent how you decide, your picks distill into a decision profile, and domains where the profile is proven graduate to autopilot (already live for material picks) — the agent decides, you keep veto. Over months it becomes a coordinator you've personally trained to decide like you.
 - **Stack:** Claude Code + Claude API (vision + tool use) for floor-plan reading, compliance triage and message drafting; Replicate (nano-banana) for structure-locked renders; whatsapp-web.js for a live WhatsApp supervision bridge.
 
