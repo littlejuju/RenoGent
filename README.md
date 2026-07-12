@@ -52,6 +52,7 @@ flowchart LR
     RA --> S["5 · Supervision"]
     S --> S1["Every promise logged; slippage mechanical"]
     S --> S2["Proactive chase & reply drafts"]
+    S --> S3["Weekly report: progress · blockers · budget vs cap"]
     S --> HG3{{"👤 nothing sent without ok"}}
 
     RA --> PV["Privacy"]

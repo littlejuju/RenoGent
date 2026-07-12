@@ -1,6 +1,14 @@
 // Whole-flat render orchestrator: floor plan + homeowner style brief →
-// one constrained render PER ROOM, each passed through the audit hook
-// (generate → audit vs plan → surgical re-edit → re-audit).
+// one constrained render PER ROOM, each passed through the audit hook.
+//
+// Retry policy (bounded escalation, not infinite surgical retry):
+//   up to 2 fresh BASE renders (base 2 bakes every earlier violation into the
+//   prompt as explicit constraints) × up to 2 SURGICAL fix rounds per base,
+//   with a plateau early-exit (if a fix round doesn't lower the violation
+//   score, that base is a dead end — surgical edits inherit the broken image).
+//   Every attempt is scored (L1/L2 fatal ×10, L3 ×1); the best one is released
+//   even when it never passed — labelled honestly as NOT passed, with the
+//   remaining issues, and the homeowner can reply "redo <room>" to try again.
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { createHash } from 'crypto'
@@ -12,6 +20,9 @@ import { auditRender } from './audit.js'
 
 const execFileP = promisify(execFile)
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+
+const MAX_BASES = 2
+const MAX_FIX_ROUNDS = 2
 
 const HDB_TYPOLOGY = (
   'This is a Singapore HDB flat. STRICT constraints: windows are standard HDB windows ' +
@@ -52,6 +63,15 @@ function roomPrompt(room, style) {
 
 const shortHash = (file) => createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 8)
 
+// L1/L2 (components, depth/scale) are fatal → weight 10; L3 style → 1.
+// No audit result at all is worse than any audited attempt.
+const scoreAudit = (audit) => {
+  if (!audit) return 999
+  if (audit.pass) return 0
+  return (audit.violations || []).reduce((s, v) =>
+    s + (v.layer === 1 || v.layer === 2 || /component|structure|room-identity|depth/.test(v.element || '') ? 10 : 1), 0)
+}
+
 // one viewpoint-plan PER RENDER, stamped with the render's hash so the pair
 // (render ↔ where-the-camera-stands) is verifiable and can't be mixed up
 async function annotateCamera(planPath, room, slug, hash) {
@@ -65,46 +85,81 @@ async function annotateCamera(planPath, room, slug, hash) {
   } catch { return null }
 }
 
+async function attemptRoom(planPath, room, slug, style, onProgress) {
+  const candidates = []
+  const auditOnce = async (file, camPlan) => {
+    try {
+      return await auditRender(path.resolve(camPlan || planPath), path.resolve(file), style, room.name, room.expected_components, room.approx_size_mm || '')
+    } catch { return null }
+  }
+  const record = async (file) => {
+    const hash = shortHash(file)
+    const cameraPlan = await annotateCamera(planPath, room, slug, hash)
+    await onProgress('audit', room, null)
+    const audit = await auditOnce(file, cameraPlan)
+    const c = { file, hash, cameraPlan, audit, score: scoreAudit(audit) }
+    candidates.push(c)
+    return c
+  }
+
+  for (let base = 1; base <= MAX_BASES; base++) {
+    // base 2+ re-generates from scratch, carrying every violation seen so far
+    // as explicit constraints — surgical edits can't escape a broken base image
+    const learned = base > 1
+      ? ` A PREVIOUS ATTEMPT FAILED THE PLAN AUDIT — this render MUST additionally satisfy: ${
+          [...new Set(candidates.flatMap((c) => c.audit?.violations || []).map((v) => v.edit_instruction))].join(' ')}`
+      : ''
+    const baseFile = planPath.replace(/\.[a-z]+$/i, `-${slug}-a${base}.png`)
+    await onProgress('render', room, base > 1 ? { retry_base: base } : null)
+    await runRender(planPath, baseFile, roomPrompt(room, style) + learned)
+    let cur = await record(baseFile)
+    if (cur.audit?.pass) return { candidates, best: cur }
+
+    for (let round = 1; round <= MAX_FIX_ROUNDS; round++) {
+      if (!cur.audit?.violations?.length) break
+      await onProgress('fix', room, cur.audit)
+      const fixes = cur.audit.violations.map((v) => v.edit_instruction).join(' ')
+      const fixedFile = planPath.replace(/\.[a-z]+$/i, `-${slug}-a${base}f${round}.png`)
+      await runRender(cur.file, fixedFile, `${fixes} Change ONLY these elements; keep everything else identical. ` + HDB_TYPOLOGY +
+        ` Homeowner vetoes still apply and override the default look: ${style}`)
+      const next = await record(fixedFile)
+      if (next.audit?.pass) return { candidates, best: next }
+      if (next.score >= cur.score) break // plateau: this base is a dead end, try a fresh base
+      cur = next
+    }
+  }
+  const best = candidates.reduce((a, b) => (b.score < a.score ? b : a), candidates[0])
+  return { candidates, best }
+}
+
 // onProgress(stage, room, payload) — stages: briefs | render | audit | fix | done | error
-export async function renderAllRooms(planPath, style, onProgress = () => {}) {
-  await onProgress('briefs', null, null)
-  const briefs = await readPlanBriefs(path.resolve(planPath))
-  if (!briefs.is_floor_plan) return { is_floor_plan: false, results: [] }
-  // persist the fact layer: briefs are the single source of truth for both the
-  // renderer and the auditor — they must be reviewable after the fact
-  fs.writeFileSync(planPath.replace(/\.[a-z]+$/i, '-briefs.json'), JSON.stringify(briefs, null, 2))
+// roomFilter: substring match on room name → re-render just that room ("redo kitchen"),
+// reusing the persisted briefs instead of re-reading the plan.
+export async function renderAllRooms(planPath, style, onProgress = () => {}, roomFilter = null) {
+  const briefsPath = planPath.replace(/\.[a-z]+$/i, '-briefs.json')
+  let briefs
+  if (roomFilter && fs.existsSync(briefsPath)) {
+    briefs = JSON.parse(fs.readFileSync(briefsPath, 'utf8'))
+  } else {
+    await onProgress('briefs', null, null)
+    briefs = await readPlanBriefs(path.resolve(planPath))
+    if (!briefs.is_floor_plan) return { is_floor_plan: false, results: [] }
+    // persist the fact layer: briefs are the single source of truth for both the
+    // renderer and the auditor — they must be reviewable after the fact
+    fs.writeFileSync(briefsPath, JSON.stringify(briefs, null, 2))
+  }
+  const rooms = briefs.rooms.filter((r) => !roomFilter || r.name.toLowerCase().includes(roomFilter.toLowerCase()))
   const results = []
-  for (const room of briefs.rooms) {
+  for (const room of rooms) {
     const slug = room.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    let out = planPath.replace(/\.[a-z]+$/i, `-${slug}.png`)
     try {
       await onProgress('render', room, null)
-      await runRender(planPath, out, roomPrompt(room, style))
-
-      // pair the render with its viewpoint-plan via content hash, then audit the PAIR
-      let hash = shortHash(out)
-      let cameraPlan = await annotateCamera(planPath, room, slug, hash)
-      await onProgress('audit', room, null)
-      let audit = null
-      try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components, room.approx_size_mm || '') } catch {}
-
-      let round = 0
-      while (audit && !audit.pass && audit.violations?.length && round < 2) {
-        round++
-        await onProgress('fix', room, audit)
-        const fixes = audit.violations.map((v) => v.edit_instruction).join(' ')
-        const fixed = planPath.replace(/\.[a-z]+$/i, `-${slug}-fix${round}.png`)
-        await runRender(out, fixed, `${fixes} Change ONLY these elements; keep everything else identical. ` + HDB_TYPOLOGY +
-          ` Homeowner vetoes still apply and override the default look: ${style}`)
-        out = fixed
-        hash = shortHash(out)
-        cameraPlan = await annotateCamera(planPath, room, slug, hash) // re-stamp for the fixed render
-        try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components, room.approx_size_mm || '') } catch {}
-      }
-      const r = { room: room.name, file: out, hash, cameraPlan, audit }
+      const { candidates, best } = await attemptRoom(planPath, room, slug, style, onProgress)
+      const status = best.audit?.pass ? 'passed' : 'best-effort'
+      const r = { room: room.name, file: best.file, hash: best.hash, cameraPlan: best.cameraPlan, audit: best.audit, status, attempts: candidates.length }
       results.push(r)
       fs.appendFileSync(path.join(path.dirname(planPath), 'render-audit-log.jsonl'),
-        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash, render: out, viewpoint_plan: cameraPlan, audit_pass: audit?.pass ?? null, violations: audit?.violations?.length ?? null, audit }) + '\n')
+        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash: best.hash, render: best.file, viewpoint_plan: best.cameraPlan, status, attempts: candidates.length, attempt_scores: candidates.map((c) => c.score), audit_pass: best.audit?.pass ?? null, violations: best.audit?.violations?.length ?? null, audit: best.audit }) + '\n')
       await onProgress('done', room, r)
     } catch (e) {
       results.push({ room: room.name, error: e.message })

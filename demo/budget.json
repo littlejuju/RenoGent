@@ -1,0 +1,11 @@
+{
+  "total": 48000,
+  "committed": [
+    { "item": "Flooring — SPC vinyl, whole flat (LF-202 Honey Oak)", "amount": 6800, "paid": false },
+    { "item": "Carpentry — kitchen cabinets + wardrobe", "amount": 14200, "paid": true },
+    { "item": "Electrical — rewiring + lighting points", "amount": 4600, "paid": true },
+    { "item": "Hacking + masonry (permitted works)", "amount": 5200, "paid": false },
+    { "item": "Painting — whole flat", "amount": 2400, "paid": false },
+    { "item": "Plumbing + bathroom fittings", "amount": 3900, "paid": false }
+  ]
+}

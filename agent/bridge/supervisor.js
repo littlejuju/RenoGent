@@ -23,6 +23,7 @@ import { fileURLToPath } from 'url'
 import { askClaude, parseJson } from '../llm.js'
 import { auditRender } from '../factlayer/audit.js'
 import { analyzeCatalog } from '../procurement/select.js'
+import { buildReport } from '../ledger/report.js'
 import { recordDecision, synthesizeSkill, countDecisions } from '../skills/skills.js'
 import * as ledger from '../ledger/ledger.js'
 
@@ -130,6 +131,33 @@ async function decide(text, approver = 'homeowner', via = 'wa') {
 }
 
 // ---------- console: floor-plan onboarding ----------
+let lastPlan = null // most recent floor-plan run: {file, style} — powers "redo <room>"
+
+// shared whole-flat progress reporter; `say` is scoped to whichever chat asked
+const renderProgressCb = (say) => async (stage, room, payload) => {
+  if (stage === 'briefs') await say(`🔍 Analyzing the floor plan into per-room briefs (walls, windows, doors, camera) — about 1 minute…`)
+  else if (stage === 'render') {
+    log('ROOM', `rendering ${room.name}${payload?.retry_base ? ` (base ${payload.retry_base})` : ''}`)
+    await say(payload?.retry_base
+      ? `🎨 ${room.name}: previous base plateaued — fresh render #${payload.retry_base}, carrying every audit constraint…`
+      : `🎨 Rendering ${room.name}…`)
+  }
+  else if (stage === 'fix')
+    await say(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
+  else if (stage === 'done') {
+    if (payload.cameraPlan)
+      await say(`📍 ${room.name} — viewpoint for render #${payload.hash}: red dot = where you stand, arrow = where you look.\nFrom here you should see: ${room.visible_from_camera || room.camera}`, payload.cameraPlan)
+    const v = payload.audit?.violations || []
+    const verdict = payload.status === 'passed'
+      ? `✅ PASSED (components, depth/scale and style match the plan) in ${payload.attempts} attempt(s)`
+      : payload.audit
+        ? `⚠️ NOT passed — best of ${payload.attempts} attempt(s), ${v.length} issue(s) remain:\n${v.map((x) => `• L${x.layer || '?'} [${x.element}] ${x.evidence}`).join('\n')}${payload.audit.room ? `\nAuditor's independent read: ${payload.audit.room}` : ''}\nReply *redo ${room.name}* for a fresh attempt.`
+        : 'skipped (audit errored)'
+    await say(`📐 ${room.name} — render #${payload.hash || 'n/a'} · audit ${verdict}`, payload.file)
+  }
+  else if (stage === 'error') await say(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
+}
+
 async function onboardImage(m, srcChat) {
   const media = await m.downloadMedia()
   if (!media) return
@@ -155,24 +183,8 @@ async function onboardImage(m, srcChat) {
     const { renderAllRooms } = await import('../factlayer/render_all.js')
     const style = m.body?.trim() || 'warm japandi style, matte oak flooring, warm cove lighting, linen curtains'
     await say(`📐 Received. Reading the plan into per-room briefs (fact layer), then rendering every room with your brief: "${style.slice(0, 120)}"…`)
-    const res = await renderAllRooms(file, style, async (stage, room, payload) => {
-      if (stage === 'briefs') await say(`🔍 Analyzing the floor plan into per-room briefs (walls, windows, doors, camera) — about 1 minute…`)
-      else if (stage === 'render') { log('ROOM', `rendering ${room.name}`); await say(`🎨 Rendering ${room.name}…`) }
-      else if (stage === 'fix')
-        await say(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
-      else if (stage === 'done') {
-        if (payload.cameraPlan)
-          await say(`📍 ${room.name} — viewpoint for render #${payload.hash}: red dot = where you stand, arrow = where you look.\nFrom here you should see: ${room.visible_from_camera || room.camera}`, payload.cameraPlan)
-        const v = payload.audit?.violations || []
-        const verdict = payload.audit?.pass
-          ? '✅ PASSED (viewpoint & geometry match the plan)'
-          : payload.audit
-            ? `⚠️ NOT passed — ${v.length} issue(s) remain, escalated to you:\n${v.map((x) => `• L${x.layer || '?'} [${x.element}] ${x.evidence}`).join('\n')}${payload.audit.room ? `\nAuditor's independent read of the render: ${payload.audit.room}` : ''}`
-            : 'skipped (audit errored)'
-        await say(`📐 ${room.name} — render #${payload.hash || 'n/a'} · audit ${verdict}`, payload.file)
-      }
-      else if (stage === 'error') await say(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
-    })
+    lastPlan = { file, style }
+    const res = await renderAllRooms(file, style, renderProgressCb(say))
     if (res.is_floor_plan) {
       const passed = res.results.filter((r) => r.audit?.pass).length
       const escalated = res.results.filter((r) => !r.error && !r.audit?.pass).length
@@ -314,6 +326,26 @@ async function onConsoleMessage(m, srcChat) {
     if (m.type === 'document') return handleCatalog(m, origin)
     return onboardImage(m, srcChat)
   }
+  // PM layer: progress/budget report + budget cap + per-room redo
+  if (/^report$/i.test(m.body?.trim() || '')) return toConsole(buildReport(), null, srcChat)
+  const bud = m.body?.match(/^budget\s+\$?([\d,]+)/i)
+  if (bud) {
+    const total = Number(bud[1].replace(/,/g, ''))
+    const bp = path.join(ROOT, 'demo/budget.json')
+    const b = fs.existsSync(bp) ? JSON.parse(fs.readFileSync(bp, 'utf8')) : { committed: [] }
+    b.total = total
+    fs.writeFileSync(bp, JSON.stringify(b, null, 2))
+    return toConsole(`✅ Budget cap set to S$${total.toLocaleString('en-SG')} — parsed quotes fill the committed lines. Reply *report* for the full picture.`, null, srcChat)
+  }
+  const redo = m.body?.match(/^redo\s+(.+)/i)
+  if (redo && lastPlan) {
+    const say = (t, mp = null) => toConsole(t, mp, srcChat)
+    await say(`🎨 Redo ${redo[1].trim()} — fresh base render, reusing the plan's cached briefs…`)
+    const { renderAllRooms } = await import('../factlayer/render_all.js')
+    renderAllRooms(lastPlan.file, lastPlan.style, renderProgressCb(say), redo[1].trim())
+      .catch((e) => say(`⚠️ redo failed: ${String(e.message).slice(0, 120)}`))
+    return
+  }
   const req = m.body?.match(/^req(?:uirements)?\s*[:：]\s*(.+)/i)
   if (req) {
     fs.mkdirSync(path.dirname(REQ_FILE), { recursive: true })
@@ -398,6 +430,17 @@ client.on('ready', async () => {
   }
   client.on('message', route)
   client.on('message_create', (m) => { if (m.fromMe) route(m) })
+
+  // PM layer: weekly digest every Monday 9am (checked hourly), plus on-demand "report"
+  let lastWeekly = null
+  setInterval(() => {
+    const now = new Date()
+    const stamp = now.toISOString().slice(0, 10)
+    if (now.getDay() === 1 && now.getHours() >= 9 && lastWeekly !== stamp && consoleChats[0]) {
+      lastWeekly = stamp
+      toConsole(buildReport(), null, consoleChats[0]).catch(() => {})
+    }
+  }, 3600 * 1000)
 })
 
 // a single failed puppeteer call must never take the supervisor down

@@ -87,6 +87,8 @@
   .msg .t{display:block;text-align:right;font-size:.66rem;color:#8a8a8a;margin-top:3px}
   .sys{align-self:center;background:#fdf3d7;border-radius:8px;font-size:.72rem;padding:4px 12px;color:#6b5d00;text-align:center;max-width:92%}
   .attach{display:flex;gap:8px;align-items:center;background:#f5f0e8;border-radius:7px;padding:6px 8px;margin-bottom:6px;font-size:.78rem;color:var(--ink-soft)}
+  .msg img{width:100%;max-height:150px;object-fit:cover;border-radius:7px;display:block;margin-bottom:5px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;white-space:pre-wrap;line-height:1.5}
   .wa-cap{padding:10px 14px;font-size:.8rem;color:var(--ink-soft);border-top:1px solid var(--line);background:var(--card)}
   .staged{margin-top:14px;font-size:.78rem;color:var(--ink-soft);text-align:center}
 
@@ -222,36 +224,68 @@
 <section id="wa" class="wrap">
   <div class="kicker">In your WhatsApp</div>
   <h2>What it actually looks like.</h2>
-  <p class="lede">Left: the family console, where the household briefs the agent and releases its drafts.
-  Right: the renovation group, where the agent — once approved — speaks as you.</p>
+  <p class="lede">Four moments from the pipeline: brief → verified render, catalog → a decision you can
+  make in ten seconds, the agent speaking as you in the contractor group, and the Monday report.</p>
   <div class="wa-row">
     <div class="wa">
-      <div class="wa-head">Reno Console 🔒<small>you, Wei Lin — group membership = who can approve</small></div>
+      <div class="wa-head">1 · Reno Console 🔒<small>you, Wei Lin — upload the plan, get audited renders</small></div>
       <div class="wa-body">
         <div class="msg in"><span class="who">Wei Lin</span>
           <div class="attach">📎 floor-plan.jpg</div>
-          4-room resale, budget S$48k. Oak vinyl, warm ivory walls, no grid on windows, open-concept kitchen
+          4-room resale, budget S$48k. Oak vinyl, warm ivory, no grid on windows, open-concept kitchen
           <span class="t">1:09 PM</span></div>
-        <div class="msg out">📐 Received. Reading the plan into per-room briefs (walls · windows · camera), then rendering every room against your brief…<span class="t">1:09 PM ✓✓</span></div>
-        <div class="msg out">🚦 Compliance check on your wishlist:<br>
-          🟡 open kitchen wall — allowed with an HDB permit ("A permit is required before demolishing any wall…")<br>
-          🔴 fridge recess in the store room — that's the bomb shelter; its walls can never be hacked.<br>
-          Draft reply declining the recess is ready — <b>ok 2</b> to send.<span class="t">1:11 PM ✓✓</span></div>
-        <div class="msg in"><span class="who">Wei Lin</span>ok 2<span class="t">1:14 PM</span></div>
-        <div class="msg out">✅ Sent to the renovation group as you.<span class="t">1:14 PM ✓✓</span></div>
+        <div class="msg out">📐 Received. Reading the plan into per-room briefs (walls · windows · camera), then rendering every room…<span class="t">1:09 PM ✓✓</span></div>
+        <div class="msg out"><img src="assets/viewpoint-kitchen.jpg" alt="Viewpoint plan for the kitchen render">📍 KITCHEN — viewpoint for render #93fc293b: red dot = where you stand, arrow = where you look.<span class="t">1:20 PM ✓✓</span></div>
+        <div class="msg out"><img src="assets/render-kitchen.jpg" alt="Audited kitchen render">📐 KITCHEN — render #93fc293b · audited against the plan, layer by layer.<span class="t">1:21 PM ✓✓</span></div>
       </div>
-      <div class="wa-cap"><b>Either spouse approves.</b> The agent replies inside your own account — feeding it a floor plan is just sending a photo.</div>
+      <div class="wa-cap"><b>Feeding it a floor plan is just sending a photo.</b> Every render ships with the proof of where its camera stands.</div>
     </div>
     <div class="wa">
-      <div class="wa-head">Reno Group 🛠<small>you, Contractor T, Electrician R</small></div>
+      <div class="wa-head">2 · Reno Console 🔒<small>a 40-page catalog becomes a 10-second decision</small></div>
       <div class="wa-body">
-        <div class="msg in"><span class="who">Contractor T</span>boss sorry, tiler MC today, flooring push to next week can 🙏<span class="t">9:41 AM</span></div>
-        <div class="sys">RenoAI logs commitment C001 · detects the slip · drafts the chase — nothing is sent until a human taps ok</div>
-        <div class="msg out">Hi T, we'd agreed flooring wraps this Friday. MC understood — but the painter is booked right behind the tiler. Can you confirm Monday as the recovery date?<span class="t">drafted by RenoAI · released with ok 1 · 9:47 AM ✓✓</span></div>
-        <div class="msg in"><span class="who">Contractor T</span>ok ok monday confirm 👍<span class="t">9:52 AM</span></div>
-        <div class="sys">New commitment C004 — flooring · Monday — logged to the ledger automatically</div>
+        <div class="sys">Contractor T dropped vinyl-catalog.pdf (10 options) in the renovation group</div>
+        <div class="msg out">📋 Top 3 for "oak vinyl, ≤$5/sqft, matte, durable":<br>
+          <b>A. Nordic Oak</b> — $3.80 · SPC · 15yr<br>
+          <b>B. Honey Oak</b> — $4.20 · SPC AC4 · 20yr<br>
+          <b>C. Sand Oak</b> — $4.50 · SPC AC4 · 20yr<br>
+          Reply <b>A/B/C</b> — add a word on why, I learn your priorities.<span class="t">2:03 PM ✓✓</span></div>
+        <div class="msg in"><span class="who">You</span>B — warm tone, durability over price<span class="t">2:04 PM</span></div>
+        <div class="msg out">🧠 Decision profile updated: durability &gt; price, warm tones preferred. Next catalog I pre-select — you just confirm.<span class="t">2:05 PM ✓✓</span></div>
       </div>
-      <div class="wa-cap"><b>Contractors see a well-organized homeowner, never a bot.</b> Every promise is on the ledger; every chase is drafted, human-released, and sent as you.</div>
+      <div class="wa-cap"><b>It learns how you decide.</b> First it offers top-3 with trade-offs; after a few picks it chooses, and you keep the veto.</div>
+    </div>
+    <div class="wa">
+      <div class="wa-head">3 · Reno Group 🛠<small>you, Contractor T, Electrician R</small></div>
+      <div class="wa-body">
+        <div class="msg out">Hi, we'll go with LF-202 Honey Oak. Please confirm availability, final price and lead time.<span class="t">drafted by RenoAI · released with ok 3 · 2:12 PM ✓✓</span></div>
+        <div class="msg in"><span class="who">Contractor T</span>can, stock have. install next thu<span class="t">2:30 PM</span></div>
+        <div class="sys">RenoAI logs commitment C005 — vinyl install · Thursday — to the ledger</div>
+        <div class="msg in"><span class="who">Contractor T</span>boss sorry, tiler MC today, flooring push to next week can 🙏<span class="t">Fri 9:41 AM</span></div>
+        <div class="msg out">We'd agreed flooring wraps this Friday. MC understood — but the painter is booked right behind the tiler. Can you confirm Monday?<span class="t">drafted by RenoAI · released with ok 1 · 9:47 AM ✓✓</span></div>
+      </div>
+      <div class="wa-cap"><b>Contractors see a well-organized homeowner, never a bot.</b> Every promise lands on the ledger; every chase is human-released and sent as you.</div>
+    </div>
+    <div class="wa">
+      <div class="wa-head">4 · Reno Console 🔒<small>Monday 9am — the weekly report, no one asked</small></div>
+      <div class="wa-body">
+        <div class="msg out"><span class="mono">📊 <b>Renovation status — week 6</b>
+
+<b>Progress</b> 9/14 closed ▓▓▓▓▓▓░░░░
+
+🔴 <b>Blockers — 2 slipped:</b>
+ C001 living room tiling — 2d overdue
+ C003 cove lighting rewire — 3d overdue
+
+🔜 <b>Due this week:</b>
+ C002 kitchen carcass · Wed
+ C004 aircon trunking · Sun
+
+<b>Budget</b> S$37,100 / S$48,000 ▓▓▓▓▓▓▓▓░░ 77%
+ paid S$18,800 · headroom S$10,900</span><span class="t">Mon 9:00 AM ✓✓</span></div>
+        <div class="msg in"><span class="who">Wei Lin</span>ok 1<span class="t">9:12 AM</span></div>
+        <div class="msg out">✅ Chase for C001 sent to Contractor T as you.<span class="t">9:12 AM ✓✓</span></div>
+      </div>
+      <div class="wa-cap"><b>Progress, blockers and budget in one glance</b> — the report your ID never sends. Reply <b>report</b> any time.</div>
     </div>
   </div>
   <p class="staged">Staged recreation (names invented) — the message flow, approval gate and ledger behaviour match the live system exactly.</p>
@@ -286,7 +320,8 @@
     <div class="cap"><div class="ico">📒</div>
       <h3>Supervision &amp; the promise ledger</h3>
       <p>"Tiling done by Friday" gets logged the moment it's said. Slippage detection is mechanical;
-      chase messages are drafted for you and sent as you.</p>
+      chase messages are drafted for you and sent as you. Every Monday: progress, blockers and
+      budget-vs-cap in one report — reply <em>report</em> for it any time.</p>
       <span class="gate">👤 nothing sent without your ok</span>
     </div>
     <div class="cap"><div class="ico">🔒</div>
