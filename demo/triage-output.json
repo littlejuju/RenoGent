@@ -1,0 +1,110 @@
+[
+  {
+    "id": "W1",
+    "classification": "amber",
+    "reasoning": "Hacking the internal partition wall between the converted-balcony study and the living room is a demolition/alteration of an internal (likely non-structural) partition wall, which HDB permits only after obtaining prior written approval. A permit is required before works start, and if any RC structural elements are affected a PE must supervise.",
+    "citations": [
+      {
+        "quote": "Demolition (partial or complete) or alteration of internal non-structure lightweight partition walls, such as hollow block/ brick walls, Drywalls or Ferrolite walls",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "walls.md"
+      },
+      {
+        "quote": "All demolition or alteration of walls can only be carried out after obtaining HDB’s approval",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "walls.md"
+      }
+    ]
+  },
+  {
+    "id": "W2",
+    "classification": "red",
+    "reasoning": "Removing a reinforced concrete column is removal of a load-bearing structural member, which is explicitly listed by HDB as a disallowed renovation work because it can compromise the structural integrity and safety of the building.",
+    "citations": [
+      {
+        "quote": "Hacking and removal of structural members such as reinforced concrete wall, columns, beams, slabs, and staircases within executive maisonettes, etc.",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/important-information-on-renovations",
+        "verified": true,
+        "file": "important-information-on-renovations.md"
+      }
+    ]
+  },
+  {
+    "id": "W3",
+    "classification": "amber",
+    "reasoning": "No permit is required to fix shelving to a household shelter wall, but the work is only allowed under strict dimensional and material conditions: drilling must use non-metallic inserts and screws no more than 50mm deep, and any such fixtures must be removable within 48 hours upon HDB's notification for wartime shelter preparation.",
+    "citations": [
+      {
+        "quote": "Drilling into internal face of the HS walls and ceiling slab to a depth of not more than 50mm to affix non-metallic inserts and removable screws is allowed",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "household-shelters.md"
+      },
+      {
+        "quote": "Fixtures such as pictures, posters, cabinets or shelves on internal face of HS will have to be removed by flat owners within 48 hours upon notification",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "household-shelters.md"
+      }
+    ]
+  },
+  {
+    "id": "W4",
+    "classification": "red",
+    "reasoning": "Raising the bathroom floor by 80mm with cement screed exceeds the maximum allowed floor build-up thickness of 50mm (inclusive of finishes), which HDB explicitly lists as a disallowed renovation work.",
+    "citations": [
+      {
+        "quote": "Raising of floor level exceeding the allowed thickness of 50mm (inclusive of floor finishes) using concrete",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/important-information-on-renovations",
+        "verified": true,
+        "file": "important-information-on-renovations.md"
+      },
+      {
+        "quote": "Total thickness of floor finishes and screed must not exceed 50mm",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "floor-finishes.md"
+      }
+    ]
+  },
+  {
+    "id": "W5",
+    "classification": "amber",
+    "reasoning": "Installing a false ceiling (with cove lighting) in the living room does not require an HDB permit, but it is subject to conditions: it must use non-combustible materials and maintain a minimum clearance of 2.4 metres from the finished floor level. Note this applies to a suspended false ceiling system, not wet plastering directly onto the RC ceiling slab, which is separately disallowed.",
+    "citations": [
+      {
+        "quote": "Non-combustible materials must be used for the false ceilings, cornices, pelmet and decorative panels",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "false-ceiling.md"
+      },
+      {
+        "quote": "the minimum clearance height of 2.4 metres measured from finished floor level",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "false-ceiling.md"
+      }
+    ]
+  },
+  {
+    "id": "W6",
+    "classification": "green",
+    "reasoning": "Repainting bedroom walls (spray painting) and replacing an internal bedroom door with an ornamental timber/plastic door are both listed as not requiring an HDB permit, with no dimensional or PE conditions attached beyond using pre-packed plastering material if plastering is involved.",
+    "citations": [
+      {
+        "quote": "Wallpaper, cement and sand plastering, gypsum plastering, rock-stone finish, spray painting",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "wall-finishes.md"
+      },
+      {
+        "quote": "Replacement of existing internal doors with ornamental timber/ plastic doors",
+        "source_url": "https://www.hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works",
+        "verified": true,
+        "file": "door-and-gate.md"
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "name": "renoai",
+  "version": "0.1.0",
+  "description": "An AI renovator that replaces your interior designer's coordination layer",
+  "type": "module",
+  "scripts": {
+    "triage": "node agent/compliance/triage.js",
+    "supervise": "node agent/bridge/supervisor.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

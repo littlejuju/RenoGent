@@ -1,0 +1,26 @@
+[
+  {
+    "who": "Contractor T",
+    "item": "living room floor tiling complete",
+    "promised_date": "2026-07-10",
+    "source_msg": "boss dont worry, tiling sure done by fri",
+    "chat": "Reno Demo",
+    "ts": "2026-07-06T10:12:00.000Z"
+  },
+  {
+    "who": "Contractor T",
+    "item": "kitchen cabinet carcass installation",
+    "promised_date": "2026-07-15",
+    "source_msg": "carpenter come in next wed to fix up the carcass first",
+    "chat": "Reno Demo",
+    "ts": "2026-07-08T14:03:00.000Z"
+  },
+  {
+    "who": "Electrician R",
+    "item": "rewire living room cove lighting points",
+    "promised_date": "2026-07-09",
+    "source_msg": "cove light point i settle by thursday latest",
+    "chat": "Reno Demo",
+    "ts": "2026-07-05T09:40:00.000Z"
+  }
+]
