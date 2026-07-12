@@ -44,6 +44,7 @@ function roomPrompt(room, style) {
   return (
     `This image is a 2D architectural floor plan of a Singapore HDB flat. ` +
     `Generate a photorealistic interior render of the ${room.name} ONLY (approx ${room.approx_size_mm || 'as drawn'}). ` +
+    `NEVER render any text, labels, dimension numbers or annotations from the plan into the image — no "DROP", no room names, no measurements anywhere. ` +
     `ORIENTATION IS ABSOLUTE: left/right as seen from the camera must match the plan exactly — NEVER mirror or swap sides. ` +
     (noWindows ? `THIS ROOM HAS NO WINDOWS on the plan — render ZERO windows; it is an internal room lit by ceiling fixtures only. ` : '') +
     (room.fixtures ? `Sanitary/kitchen fixtures EXACTLY as drawn on the plan: ${room.fixtures}. Never add a fixture the plan does not show in this room (e.g. no toilet in the bathroom when the toilet pan is drawn in the separate W.C.). ` : '') +
@@ -65,11 +66,12 @@ const shortHash = (file) => createHash('sha256').update(fs.readFileSync(file)).d
 
 // L1/L2 (components, depth/scale) are fatal → weight 10; L3 style → 1.
 // No audit result at all is worse than any audited attempt.
+const isFatal = (v) => v.layer === 1 || v.layer === 2 || /component|structure|room-identity|depth|artifact/.test(v.element || '')
+const fatalCount = (audit) => (audit?.violations || []).filter(isFatal).length
 const scoreAudit = (audit) => {
   if (!audit) return 999
   if (audit.pass) return 0
-  return (audit.violations || []).reduce((s, v) =>
-    s + (v.layer === 1 || v.layer === 2 || /component|structure|room-identity|depth/.test(v.element || '') ? 10 : 1), 0)
+  return (audit.violations || []).reduce((s, v) => s + (isFatal(v) ? 10 : 1), 0)
 }
 
 // one viewpoint-plan PER RENDER, stamped with the render's hash so the pair
@@ -128,8 +130,16 @@ async function attemptRoom(planPath, room, slug, style, onProgress) {
       cur = next
     }
   }
-  const best = candidates.reduce((a, b) => (b.score < a.score ? b : a), candidates[0])
-  return { candidates, best }
+  // HARD RULE: an image with structural (L1/L2) violations is NEVER released.
+  // Only structurally-clean candidates are eligible; style issues (L3) may ship
+  // with a warning because taste is the human's call — geometry is not.
+  const eligible = candidates.filter((c) => c.audit && fatalCount(c.audit) === 0)
+  if (eligible.length) {
+    const best = eligible.reduce((a, b) => (b.score < a.score ? b : a), eligible[0])
+    return { candidates, best, blocked: false }
+  }
+  const closest = candidates.reduce((a, b) => (b.score < a.score ? b : a), candidates[0])
+  return { candidates, best: closest, blocked: true }
 }
 
 // onProgress(stage, room, payload) — stages: briefs | render | audit | fix | done | error
@@ -154,9 +164,16 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}, roo
     const slug = room.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     try {
       await onProgress('render', room, null)
-      const { candidates, best } = await attemptRoom(planPath, room, slug, style, onProgress)
-      const status = best.audit?.pass ? 'passed' : 'best-effort'
-      const r = { room: room.name, file: best.file, hash: best.hash, cameraPlan: best.cameraPlan, audit: best.audit, status, attempts: candidates.length }
+      const { candidates, best, blocked } = await attemptRoom(planPath, room, slug, style, onProgress)
+      const status = blocked ? 'blocked' : best.audit?.pass ? 'passed' : 'style-escalation'
+      const r = {
+        room: room.name,
+        // blocked rooms release NO image — the file stays on disk for forensics only
+        file: blocked ? null : best.file,
+        blockedFile: blocked ? best.file : null,
+        hash: best.hash, cameraPlan: blocked ? null : best.cameraPlan,
+        audit: best.audit, status, attempts: candidates.length,
+      }
       results.push(r)
       fs.appendFileSync(path.join(path.dirname(planPath), 'render-audit-log.jsonl'),
         JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash: best.hash, render: best.file, viewpoint_plan: best.cameraPlan, status, attempts: candidates.length, attempt_scores: candidates.map((c) => c.score), audit_pass: best.audit?.pass ?? null, violations: best.audit?.violations?.length ?? null, audit: best.audit }) + '\n')

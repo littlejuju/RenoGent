@@ -145,13 +145,19 @@ const renderProgressCb = (say) => async (stage, room, payload) => {
   else if (stage === 'fix')
     await say(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
   else if (stage === 'done') {
+    const v = payload.audit?.violations || []
+    const detail = v.map((x) => `• L${x.layer || '?'} [${x.element}] ${x.evidence}`).join('\n')
+    if (payload.status === 'blocked') {
+      // HARD RULE: structural violations → no image released, report only
+      await say(`❌ ${room.name} — ${payload.attempts} attempt(s), NONE passed the structural audit (L1/L2). No render released — a structurally wrong image is worse than no image.\nClosest attempt failed on:\n${detail}\nReply *redo ${room.name}* for a fresh set of attempts.`)
+      return
+    }
     if (payload.cameraPlan)
       await say(`📍 ${room.name} — viewpoint for render #${payload.hash}: red dot = where you stand, arrow = where you look.\nFrom here you should see: ${room.visible_from_camera || room.camera}`, payload.cameraPlan)
-    const v = payload.audit?.violations || []
     const verdict = payload.status === 'passed'
       ? `✅ PASSED (components, depth/scale and style match the plan) in ${payload.attempts} attempt(s)`
       : payload.audit
-        ? `⚠️ NOT passed — best of ${payload.attempts} attempt(s), ${v.length} issue(s) remain:\n${v.map((x) => `• L${x.layer || '?'} [${x.element}] ${x.evidence}`).join('\n')}${payload.audit.room ? `\nAuditor's independent read: ${payload.audit.room}` : ''}\nReply *redo ${room.name}* for a fresh attempt.`
+        ? `🟡 structure verified ✓ — ${v.length} STYLE issue(s) left for your judgement:\n${detail}\nReply *redo ${room.name}* if it's not to taste.`
         : 'skipped (audit errored)'
     await say(`📐 ${room.name} — render #${payload.hash || 'n/a'} · audit ${verdict}`, payload.file)
   }
@@ -186,10 +192,11 @@ async function onboardImage(m, srcChat) {
     lastPlan = { file, style }
     const res = await renderAllRooms(file, style, renderProgressCb(say))
     if (res.is_floor_plan) {
-      const passed = res.results.filter((r) => r.audit?.pass).length
-      const escalated = res.results.filter((r) => !r.error && !r.audit?.pass).length
+      const passed = res.results.filter((r) => r.status === 'passed').length
+      const style = res.results.filter((r) => r.status === 'style-escalation').length
+      const blocked = res.results.filter((r) => r.status === 'blocked').length
       const failed = res.results.filter((r) => r.error).length
-      await say(`🏁 Whole-flat pass complete: ✅ ${passed} passed audit · ⚠️ ${escalated} escalated to you (issues listed above)${failed ? ` · ❌ ${failed} failed to render` : ''}. Escalated rooms are NOT approved — reply with the room name + what to change, or "redo <room>".`)
+      await say(`🏁 Whole-flat pass complete: ✅ ${passed} passed · 🟡 ${style} structure-verified with style questions for you · ❌ ${blocked} structurally blocked (no image released)${failed ? ` · ${failed} render errors` : ''}. Reply "redo <room>" to retry any room.`)
       const triagePath = path.join(ROOT, 'demo/triage-output.json')
       if (fs.existsSync(triagePath)) {
         const t = JSON.parse(fs.readFileSync(triagePath, 'utf8'))
