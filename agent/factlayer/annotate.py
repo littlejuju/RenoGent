@@ -41,7 +41,29 @@ def annotate(plan, out, cx, cy, lx, ly, label):
     d.rectangle([bbox[0] - 8, bbox[1] - 6, bbox[2] + 8, bbox[3] + 6], fill=(255, 255, 255, 235), outline=(220, 30, 30, 255), width=2)
     d.text((tx, ty), label, fill=(180, 20, 20, 255), font=font)
 
-    Image.alpha_composite(im, overlay).convert("RGB").save(out, "JPEG", quality=90)
+    final = Image.alpha_composite(im, overlay).convert("RGB")
+
+    # crop away phone-screenshot chrome (same density scan as render.preprocess):
+    # WhatsApp previews a tall screenshot by its blank bottom half, so the marker
+    # is invisible unless we crop to the actual drawing
+    w, h = final.size
+    px = final.convert("L").point(lambda p: 1 if p > 200 else 0).load()
+    rows = [y for y in range(h) if sum(px[x, y] for x in range(0, w, 4)) * 4 > 0.5 * w]
+    if rows:
+        y0, y1 = rows[0], rows[-1]
+        # tighten: drop leading/trailing blank rows (all-white, no drawing ink)
+        inked = [y for y in range(y0, y1) if sum(px[x, y] for x in range(0, w, 4)) * 4 < 0.99 * w]
+        if inked:
+            y0, y1 = max(y0, inked[0] - 20), min(y1, inked[-1] + 20)
+        cols = [x for x in range(w) if sum(px[x, y] for y in range(y0, y1, 4)) * 4 > 0.5 * (y1 - y0)]
+        if cols:
+            x0, x1 = cols[0], cols[-1]
+            area = (x1 - x0) * (y1 - y0)
+            if 0.20 * w * h <= area <= 0.95 * w * h:
+                pad = 8
+                final = final.crop((max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + pad)))
+
+    final.save(out, "JPEG", quality=90)
     print(f"annotated -> {out}")
 
 

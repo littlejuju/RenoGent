@@ -42,8 +42,11 @@ LAYER 2 — DEPTH & SCALE (景深/尺度):
   - Ceiling height ~2.6m; window band length proportional to its wall segment on the plan.
 
 LAYER 3 — TYPOLOGY & STYLE COMPLIANCE (only after layers 1-2):
-  - HDB typology: horizontal window band with solid parapet below (sill ~1m; kitchen sill above counter at ~1.1-1.2m), dark frames, modest size relative to the wall. No floor-to-ceiling windows, curtain walls, or balconies absent from the plan. Windows never overlap counters, sinks or cabinets.
+  - HDB typology: horizontal window band with solid parapet below (sill ~1m; kitchen sill above counter at ~1.1-1.2m), modest size relative to the wall. No floor-to-ceiling windows, curtain walls, or balconies absent from the plan. Windows never overlap counters, sinks or cabinets.
+  - Brief REQUESTS are binding finishes: if the brief specifies a frame colour, wall colour or material ("warm ivory window frame"), a render that contradicts it is a style violation — check colours item by item against the brief.
   - False ceiling only as perimeter L-box unless the brief says otherwise; style follows the brief.
+  - Brief PROHIBITIONS are hard: any brief item phrased as "no X" ("no grid on window", "no false ceiling") that the render contradicts is a violation — muntins, louvres or slats all count as "grid".
+  - Fixtures must match the plan: a fixture rendered in a room whose plan symbol sits in a different room (e.g. toilet in BATH when the pan is drawn in the W.C.) is a layer-1 component-invented violation.
 
 Output pure JSON only, no prose:
 {"room": "which room + camera position, or 'unverifiable'", "components_seen": ["render components with bearings"], "scale_check": "one line: do proportions/depth match the plan dims?", "pass": bool, "violations": [{"layer": 1, "element": "component-missing|component-invented|component-misplaced|structure|room-identity|depth-scale|hdb-typology|window|door|wall|ceiling|style", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`

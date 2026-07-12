@@ -39,6 +39,7 @@ If it IS a floor plan, extract EVERY habitable room and output pure JSON:
  ]
 }
 Also add per room:
+   "fixtures": "sanitary/kitchen fixtures ACTUALLY DRAWN in this room on the plan (toilet pan, basin, shower, bathtub, sink, stove) and where they sit. Read the fixture symbols carefully: if the toilet pan is drawn in the separate W.C., then the BATH has NO toilet — say so explicitly.",
    "actual_function": "what this space REALLY is, judged from geometry — HDB plans often mislabel: a 'BALCONY' beside the kitchen that is enclosed, corridor-shaped (narrow, pass-through, leads to W.C./service area) is actually a service passage/hallway, not a leisure balcony. State your judgement and the geometric evidence (width, access, adjacency).",
    "design_notes": "1-2 design decisions with REASONS grounded in circulation (动线): where people walk through this room, what must stay clear, why counters/half-walls/openings go where they go. Any special element (half-height wall, raised counter, island) MUST carry a justification or be omitted."
 
@@ -49,7 +50,7 @@ Rules:
 - Camera always stands at a doorway or room corner INSIDE the room, looking toward the most characteristic wall (usually the window wall).
 - camera_px / look_at_px are pixel coordinates on the image as provided — be precise, they will be drawn on the plan and verified.
 - visible_from_camera must be derivable from the plan geometry: for a camera at camera_px facing look_at_px, say which features fall LEFT / RIGHT / AHEAD.
-- expected_components: trace the view cone on the plan and enumerate EVERY component it hits (walls, doors, openings, windows, thresholds) with bearing and distance. This manifest is the ground truth a renderer must reproduce and an auditor will check item by item — completeness matters more than brevity.
+- expected_components: trace the view cone on the plan and enumerate EVERY component it hits (walls, doors, openings, windows, thresholds) with bearing and distance. Include NON-RECTANGULAR geometry explicitly: angled/chamfered corners (corner units often have one, look for short diagonal dimension lines like "343"), columns, recesses — if the view cone hits an angled corner wall, it MUST be in the manifest with its bearing. This manifest is the ground truth a renderer must reproduce and an auditor will check item by item — completeness matters more than brevity.
 - Output pure JSON only.`
   const { stdout } = await execFileP('claude', ['-p', prompt, '--model', MODEL, '--allowedTools', 'Read'], {
     encoding: 'utf8',

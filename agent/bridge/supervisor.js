@@ -174,8 +174,10 @@ async function onboardImage(m, srcChat) {
       else if (stage === 'error') await say(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
     })
     if (res.is_floor_plan) {
-      const ok = res.results.filter((r) => !r.error).length
-      await say(`✅ Whole-flat render complete: ${ok}/${res.results.length} rooms delivered.`)
+      const passed = res.results.filter((r) => r.audit?.pass).length
+      const escalated = res.results.filter((r) => !r.error && !r.audit?.pass).length
+      const failed = res.results.filter((r) => r.error).length
+      await say(`🏁 Whole-flat pass complete: ✅ ${passed} passed audit · ⚠️ ${escalated} escalated to you (issues listed above)${failed ? ` · ❌ ${failed} failed to render` : ''}. Escalated rooms are NOT approved — reply with the room name + what to change, or "redo <room>".`)
       const triagePath = path.join(ROOT, 'demo/triage-output.json')
       if (fs.existsSync(triagePath)) {
         const t = JSON.parse(fs.readFileSync(triagePath, 'utf8'))
