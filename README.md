@@ -2,7 +2,14 @@
 
 # RenoGent — an AI renovator that replaces your interior designer's coordination layer
 
-<p><em>The logo is the product: a floor plan, a camera, and the proof they match.</em></p>
+<p align="center"><em>The logo is the product: a floor plan, a camera, and the proof they match.</em></p>
+
+<p align="center">
+  <a href="https://littlejuju.github.io/RenoGent/"><b>🌐 Landing page</b></a> ·
+  <a href="#capability-map">Capability map</a> ·
+  <a href="#verified-renders-not-ai-fantasy">Verified renders</a> ·
+  <a href="#whats-real-vs-staged-honest-disclosure">What's real</a>
+</p>
 
 ## TL;DR
 
@@ -18,6 +25,7 @@
 2. **Create your console.** Make a WhatsApp group for your household (you + spouse/family) — e.g. "RenoGent Console". Group membership is the permission system: anyone in it can feed the agent and approve its actions.
 3. **Feed it.** Drop your floor plan or room photo into the console with a one-line brief ("hack the study wall, japandi style, S$50k"). The agent replies in the console with the verified structural fact layer, green/amber/red compliance triage (citations verbatim from hdb.gov.sg) and a structure-locked render.
 4. **Supervise.** The agent watches your renovation group with contractors. Every promise ("tiling done by Friday") is logged to the commitment ledger; overdue promises trigger drafted chase messages delivered to your console — reply `ok 1` to send as yourself, `no 1` to discard. Either spouse can approve.
+5. **Stay on top without asking.** Reply `report` (or wait for Monday 9am) for progress, blockers, budget-vs-cap — and trade-matched acceptance checklists for freshly completed work, so you know how to inspect before you pay. `redo BEDROOM 1` re-renders a single room; `budget 48000` sets your cap.
 
 **Privacy model:** whitelist-only. The agent subscribes to exactly two chats — your console and your renovation group. Every other conversation is dropped at the event entry point: not read, not parsed, not stored. Every outgoing message requires explicit human approval.
 
@@ -35,7 +43,8 @@ flowchart LR
 
     RA --> D["2 · Design & render"]
     D --> D1["Structure-locked renders, HDB typology prior"]
-    D --> D2["Loop: generate → audit → surgical re-edit"]
+    D --> D2["3-layer audit: components → depth/scale → style"]
+    D --> D3["Hash-paired viewpoint plans; best-of-N, honest escalation"]
     D --> HG1{{"👤 taste sign-off"}}
 
     RA --> C["3 · Compliance"]
@@ -53,6 +62,7 @@ flowchart LR
     S --> S1["Every promise logged; slippage mechanical"]
     S --> S2["Proactive chase & reply drafts"]
     S --> S3["Weekly report: progress · blockers · budget vs cap"]
+    S --> S4["Acceptance checklists — verify work before paying"]
     S --> HG3{{"👤 nothing sent without ok"}}
 
     RA --> PV["Privacy"]
@@ -70,26 +80,46 @@ flowchart LR
 
 **The one rule that never bends:** the agent prepares, verifies and drafts; the human decides. Every irreversible step — message send-off, product pick, design sign-off, and everything requiring a licence — passes through a human or a licensed professional.
 
-## The 4-step agentic chain
+## Verified renders, not AI fantasy
 
-1. **Floor plan → immutable fact layer.** mm/px calibration from printed dimension lines, structural extraction, verified overlays with read-back diff hooks.
-2. **Compliance triage.** Work items classified green/amber/red against HDB rules; a citation-verification gate rejects any rule citation that does not verbatim-match our scraped hdb.gov.sg corpus (`data/hdb_corpus/`).
-3. **Contractor-direct RFQ.** Scope → line-item RFQs → quotes parsed into a commitment ledger.
-4. **WhatsApp supervision.** Live bridge logs contractor promises into the ledger, chases slippage, drafts escalations — a human approves every outgoing message before it is sent.
+AI renders love to invent windows and stretch rooms. Here they don't get to: every render is
+**hash-paired** to a stamped copy of the floor plan showing exactly where its camera stands,
+then machine-audited in three ordered layers — ① components (every wall/door/window/beam
+reconciled against a manifest traced from the plan), ② depth & scale against the plan's printed
+mm dimensions, ③ HDB typology & the homeowner's brief (prohibitions like "no grid on windows"
+are hard constraints). A render that can't pass after bounded retries (2 fresh bases × 2 surgical
+edits, plateau early-exit) is released as **best-of-N, labelled NOT passed**, with the remaining
+violations listed — never silently shipped.
+
+| The viewpoint plan | The audited render |
+|---|---|
+| ![Viewpoint plan: red dot camera marker and view cone stamped with the render hash](docs/assets/viewpoint-kitchen.jpg) | ![Kitchen render, hash-matched to the viewpoint plan](docs/assets/render-kitchen.jpg) |
+| Red dot = camera, cone = what it sees, stamped `#93fc293b` | Same hash `#93fc293b` — the pair can't be mixed up |
+
+## The agentic chain
+
+1. **Floor plan → immutable fact layer.** mm/px calibration from printed dimension lines, per-room structural briefs (walls, windows, camera, fixtures, expected-component manifests), persisted as the single reviewable ground truth.
+2. **Constrained render + 3-layer audit.** Generate → audit against the fact layer → surgical re-edit or fresh base → honest escalation (see above).
+3. **Compliance triage.** Work items classified green/amber/red against HDB rules; a citation-verification gate rejects any rule citation that does not verbatim-match our scraped hdb.gov.sg corpus (`data/hdb_corpus/`).
+4. **Procurement that learns you.** Catalog → top-3 with pros/cons; your picks distill into a decision profile (priority rules with evidence); later catalogs are auto-picked under that profile, human confirm required.
+5. **WhatsApp supervision + PM.** Live bridge logs contractor promises into the ledger, chases slippage, drafts escalations — a human approves every outgoing message. Weekly report: progress, blockers, budget vs cap, and acceptance checklists for completed work.
 
 ## Repo layout
 
 ```
 agent/
-  factlayer/    floor plan → verified structural overlay (+ diff hooks)
+  factlayer/    plan → per-room briefs · constrained renders · 3-layer audit · viewpoint plans
   compliance/   green/amber/red triage + citation-verification gate
+  procurement/  catalog analysis: top-3 or learned auto-pick
+  skills/       decision-profile learning (picks → distilled priority rules)
   rfq/          RFQ generation + quote parsing
-  ledger/       commitment ledger + slippage detection
-  bridge/       WhatsApp bridge + human approval send-gate
+  ledger/       commitment ledger · slippage detection · weekly report + acceptance checklists
+  bridge/       WhatsApp bridge + human approval send-gate + dual-console test router
 data/
   hdb_corpus/   scraped hdb.gov.sg rules (citation ground truth)
   fixtures/     sanitized demo data
 scripts/        sanitize gate (pre-commit PII blocker)
+docs/           GitHub Pages landing (littlejuju.github.io/RenoGent)
 demo/           demo drivers
 ```
 
@@ -99,4 +129,4 @@ We do not replace licensed contractors or professional engineers; all structural
 
 ## What's real vs. staged (honest disclosure)
 
-Real and working today: structure-locked render pipeline ($0.04/render), metric-grounded floor-plan extraction, WhatsApp bridge (live), 2,171-message parsed corpus, HDB rules corpus with citation gate. Hardcoded for the demo: payment, auth, multi-user persistence.
+Real and working today, verified end-to-end over live WhatsApp: whole-flat per-room render pipeline with hash-paired viewpoint plans and the 3-layer audit ($0.04/render), metric-grounded floor-plan extraction, compliance triage with all-verbatim citations, decision-profile learning (top-3 → pick → auto-pick), commitment ledger + chase drafts behind the human approval gate, weekly report with budget + acceptance checklists. Hardcoded or staged for the demo: payment, auth, multi-user persistence (single-tenant on one machine today). Renders that fail audit are delivered honestly as NOT passed — you will see escalations in the demo, by design.
