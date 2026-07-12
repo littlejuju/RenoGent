@@ -1,4 +1,8 @@
+<p align="center"><img src="docs/assets/logo.svg" width="110" alt="RenoAI logo — a floor plan with a camera viewpoint marker"></p>
+
 # RenoAI — an AI renovator that replaces your interior designer's coordination layer
+
+<p><em>The logo is the product: a floor plan, a camera, and the proof they match.</em></p>
 
 ## TL;DR
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RenoAI — the AI renovator in your WhatsApp</title>
 <meta name="description" content="ID-level design, HDB compliance and contractor supervision for Singapore homeowners — inside the WhatsApp you already use. Human approves everything.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
 <style>
   :root{
     --ink:#2b2320; --ink-soft:#6b5d55; --paper:#faf7f2; --card:#ffffff;
@@ -28,8 +28,9 @@
   /* nav */
   nav{position:sticky;top:0;z-index:10;background:rgba(250,247,242,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
   .nav-in{display:flex;align-items:center;justify-content:space-between;height:60px}
-  .logo{font-weight:800;font-size:1.15rem;text-decoration:none;color:var(--ink)}
+  .logo{font-weight:800;font-size:1.15rem;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:9px}
   .logo span{color:var(--oak-deep)}
+  .logo img{width:30px;height:30px;border-radius:8px}
   .nav-links{display:flex;gap:20px;align-items:center;font-size:.92rem}
   .nav-links a{text-decoration:none;color:var(--ink-soft)}
   .gh{border:1.5px solid var(--ink);border-radius:8px;padding:6px 14px;color:var(--ink)!important;font-weight:600}
@@ -126,7 +127,7 @@
 
 <nav>
   <div class="wrap nav-in">
-    <a class="logo" href="#">Reno<span>AI</span></a>
+    <a class="logo" href="#"><img src="assets/logo.svg" alt=""><span style="color:var(--ink)">Reno<span>AI</span></span></a>
     <div class="nav-links">
       <a href="#how">How it works</a>
       <a href="#proof">Verified renders</a>

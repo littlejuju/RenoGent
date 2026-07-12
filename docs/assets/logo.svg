@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="RenoAI logo: a floor plan with a camera viewpoint marker">
+  <rect x="2" y="2" width="116" height="116" rx="26" fill="#2b2320"/>
+  <!-- floor-plan walls -->
+  <g stroke="#f3e9dc" stroke-width="5" fill="none" stroke-linecap="square">
+    <path d="M30 34 H90 V90 H30 Z"/>
+    <path d="M64 34 V50"/>
+    <path d="M90 64 H74"/>
+  </g>
+  <!-- window band on the top wall (oak) -->
+  <path d="M38 34 H56" stroke="#b8865a" stroke-width="9"/>
+  <!-- view cone -->
+  <polygon points="40,82 64,36 88,58" fill="#ef5350" opacity="0.3"/>
+  <!-- arrow -->
+  <line x1="40" y1="82" x2="62" y2="60" stroke="#e53935" stroke-width="4" stroke-linecap="round"/>
+  <polygon points="69,52 58.5,55.5 65.5,62.5" fill="#e53935"/>
+  <!-- camera dot -->
+  <circle cx="40" cy="82" r="6.5" fill="#e53935" stroke="#fdf6ec" stroke-width="3"/>
+</svg>
