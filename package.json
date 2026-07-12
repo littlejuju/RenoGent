@@ -7,7 +7,10 @@
     "demo": "node demo/run_demo.js",
     "triage": "node agent/compliance/triage.js",
     "rfq": "node agent/rfq/rfq.js generate demo/recorded/triage-output.json",
-    "supervise": "node agent/bridge/supervisor.js"
+    "supervise": "node agent/bridge/supervisor.js",
+    "render:candidates": "node demo/render_candidates_no_claude.js",
+    "audit:render": "node agent/factlayer/release_gate.js",
+    "audit:living": "python3 agent/factlayer/hooks/living_dining.py"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

@@ -12,6 +12,7 @@ __pycache__/
 raw/
 sanitize-patterns.txt
 demo/inbox/
+demo/manual-candidates.json
 demo/ledger.json
 demo/cmd.txt
 demo/*.pid

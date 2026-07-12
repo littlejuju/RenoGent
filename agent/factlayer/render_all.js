@@ -6,9 +6,9 @@
 //   prompt as explicit constraints) × up to 2 SURGICAL fix rounds per base,
 //   with a plateau early-exit (if a fix round doesn't lower the violation
 //   score, that base is a dead end — surgical edits inherit the broken image).
-//   Every attempt is scored (L1/L2 fatal ×10, L3 ×1); the best one is released
-//   even when it never passed — labelled honestly as NOT passed, with the
-//   remaining issues, and the homeowner can reply "redo <room>" to try again.
+//   Every attempt is scored (L1/L2 fatal ×10, L3 ×1); an attempt is released
+//   only after the release gate passes. Failed attempts stay on disk for
+//   forensics and retries, but do not enter any human-facing surface.
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { createHash } from 'crypto'
@@ -26,6 +26,7 @@ import {
   scoreMetaAudit,
   visibleComponents,
 } from './meta_audit.js'
+import { releaseGate, scoreReleaseGate } from './release_gate.js'
 
 const execFileP = promisify(execFile)
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -94,7 +95,8 @@ const scoreAudit = (audit) => {
   if (audit.pass) return 0
   return (audit.violations || []).reduce((s, v) => s + (isFatal(v) ? 10 : 1), 0)
 }
-const candidatePass = (candidate) => candidate.audit?.pass && candidate.metaAudit?.pass
+const candidatePass = (candidate) =>
+  candidate.audit?.pass && candidate.metaAudit?.pass && candidate.releaseGate?.pass
 
 // one viewpoint-plan PER RENDER, stamped with the render's hash so the pair
 // (render ↔ where-the-camera-stands) is verifiable and can't be mixed up
@@ -124,7 +126,24 @@ async function attemptRoom(planPath, room, slug, style, onProgress) {
     await onProgress('audit', room, null)
     const audit = await auditOnce(file, cameraPlan)
     const metaAudit = auditAuditResult(audit, contract)
-    const c = { file, hash, cameraPlan, promptAudit, audit, metaAudit, score: scoreAudit(audit) + scoreMetaAudit(metaAudit) }
+    const gate = await releaseGate({
+      roomName: room.name,
+      renderPath: file,
+      visualAudit: audit,
+      metaAudit,
+      requireVisualAudit: true,
+      requireMetaAudit: true,
+    })
+    const c = {
+      file,
+      hash,
+      cameraPlan,
+      promptAudit,
+      audit,
+      metaAudit,
+      releaseGate: gate,
+      score: scoreAudit(audit) + scoreMetaAudit(metaAudit) + scoreReleaseGate(gate),
+    }
     candidates.push(c)
     return c
   }
@@ -165,10 +184,11 @@ async function attemptRoom(planPath, room, slug, style, onProgress) {
       cur = next
     }
   }
-  // HARD RULE: an image with structural (L1/L2) violations is NEVER released.
-  // Only structurally-clean candidates are eligible; style issues (L3) may ship
-  // with a warning because taste is the human's call — geometry is not.
-  const eligible = candidates.filter((c) => c.audit && fatalCount(c.audit) === 0 && metaFatalCount(c.metaAudit) === 0)
+  // HARD RULE: only candidates that pass the release gate may be released.
+  // The gate includes primary audit, meta-audit, and any room-specific local
+  // hook. Everything else is quarantined even if a PNG exists on disk.
+  const eligible = candidates.filter((c) =>
+    c.releaseGate?.pass && c.audit && fatalCount(c.audit) === 0 && metaFatalCount(c.metaAudit) === 0)
   if (eligible.length) {
     const best = eligible.reduce((a, b) => (b.score < a.score ? b : a), eligible[0])
     return { candidates, best, blocked: false }
@@ -216,7 +236,7 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}, roo
       }
       results.push(r)
       fs.appendFileSync(path.join(path.dirname(planPath), 'render-audit-log.jsonl'),
-        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash: best.hash, render: best.file, viewpoint_plan: best.cameraPlan, status, attempts: candidates.length, attempt_scores: candidates.map((c) => c.score), audit_pass: best.audit?.pass ?? null, meta_audit_pass: best.metaAudit?.pass ?? null, violations: best.audit?.violations?.length ?? null, meta_violations: best.metaAudit?.violations?.length ?? null, prompt_preflight: best.promptAudit, audit: best.audit, meta_audit: best.metaAudit }) + '\n')
+        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash: best.hash, render: best.file, viewpoint_plan: best.cameraPlan, status, attempts: candidates.length, attempt_scores: candidates.map((c) => c.score), audit_pass: best.audit?.pass ?? null, meta_audit_pass: best.metaAudit?.pass ?? null, release_gate_pass: best.releaseGate?.pass ?? null, violations: best.audit?.violations?.length ?? null, meta_violations: best.metaAudit?.violations?.length ?? null, release_gate_violations: best.releaseGate?.violations?.length ?? null, prompt_preflight: best.promptAudit, audit: best.audit, meta_audit: best.metaAudit, release_gate: best.releaseGate }) + '\n')
       await onProgress('done', room, r)
     } catch (e) {
       results.push({ room: room.name, error: e.message })

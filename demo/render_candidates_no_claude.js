@@ -4,7 +4,8 @@
 //   node demo/render_candidates_no_claude.js "study,bedroom 1" 2
 //
 // This is the fallback path when Claude quota is exhausted:
-// Replicate generates candidates, then a human/Codex audits visually.
+// Replicate generates candidates, then the release gate quarantines obvious
+// failures before a human/Codex reviews anything.
 import fs from 'fs'
 import path from 'path'
 import { execFile } from 'child_process'
@@ -13,6 +14,7 @@ import { fileURLToPath } from 'url'
 import { setTimeout as sleep } from 'timers/promises'
 import { roomPrompt } from '../agent/factlayer/render_all.js'
 import { auditPromptContract } from '../agent/factlayer/meta_audit.js'
+import { releaseGate } from '../agent/factlayer/release_gate.js'
 
 const execFileP = promisify(execFile)
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -46,19 +48,30 @@ const renderOne = async (room, i) => {
     timeout: 300000,
     maxBuffer: 4 * 1024 * 1024,
   })
-  console.log(JSON.stringify({ room: room.name, candidate: i, file: out }))
-  return { room: room.name, candidate: i, file: out, promptAudit }
+  const gate = await releaseGate({
+    roomName: room.name,
+    renderPath: out,
+    requireLocalHook: true,
+  })
+  const record = { room: room.name, candidate: i, file: out, promptAudit, releaseGate: gate }
+  console.log(JSON.stringify(record))
+  return record
 }
 
 const ok = []
 const records = []
+const quarantined = []
 const failed = []
 for (const room of rooms) {
   for (let i = 1; i <= count; i++) {
     try {
       const record = await renderOne(room, i)
-      ok.push(record.file)
       records.push(record)
+      if (record.releaseGate.pass) {
+        ok.push(record.file)
+      } else {
+        quarantined.push(record)
+      }
     } catch (err) {
       failed.push(String(err?.message || err))
     }
@@ -68,9 +81,9 @@ for (const room of rooms) {
     }
   }
 }
-fs.writeFileSync(path.join(ROOT, 'demo/manual-candidates.json'), JSON.stringify({ ts: new Date().toISOString(), files: ok, records, failed }, null, 2))
-console.log(`done: ${ok.length} generated, ${failed.length} failed -> demo/manual-candidates.json`)
-if (failed.length) {
+fs.writeFileSync(path.join(ROOT, 'demo/manual-candidates.json'), JSON.stringify({ ts: new Date().toISOString(), files: ok, records, quarantined, failed }, null, 2))
+console.log(`done: ${records.length} generated, ${ok.length} release-ready, ${quarantined.length} quarantined, ${failed.length} failed -> demo/manual-candidates.json`)
+if (failed.length || !ok.length) {
   console.error(failed.join('\n---\n'))
   process.exitCode = 1
 }
