@@ -48,7 +48,7 @@ Also add per room:
    "design_notes": "1-2 design decisions with REASONS grounded in circulation (动线): where people walk through this room, what must stay clear, why counters/half-walls/openings go where they go. Any special element (half-height wall, raised counter, island) MUST carry a justification or be omitted."
 
 Rules:
-- Include living/dining, kitchen, every bedroom, bathroom(s). Skip WC smaller than 2sqm, shelters, and corridors.
+- Include living/dining, kitchen, every bedroom, bathroom(s), and every room the homeowner brief names. Skip WC smaller than 2sqm, shelters, corridors, and OPEN-AIR service balconies/yards (they are not render subjects — but an enclosed space the homeowner calls a room is NOT open-air).
 - SANITY-CHECK every label against its geometry before trusting it (mislabeled balconies are classic in HDB plans).
 - Read window positions from the arc/line symbols on exterior walls; read dimensions from the printed mm numbers.
 - Camera always stands at a doorway or room corner INSIDE the room, looking toward the room's OWN main window wall. Never make an adjacent room's doorway the main subject — for LIVING/DINING the subject is the living area and ITS window band, not the opening into a neighbouring room (e.g. the study).

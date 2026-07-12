@@ -162,7 +162,9 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}, roo
     // renderer and the auditor — they must be reviewable after the fact
     fs.writeFileSync(briefsPath, JSON.stringify(briefs, null, 2))
   }
-  const rooms = briefs.rooms.filter((r) => !roomFilter || r.name.toLowerCase().includes(roomFilter.toLowerCase()))
+  // roomFilter accepts comma-separated substrings: "living,study,kitchen"
+  const wanted = roomFilter ? roomFilter.toLowerCase().split(',').map((s) => s.trim()).filter(Boolean) : null
+  const rooms = briefs.rooms.filter((r) => !wanted || wanted.some((w) => r.name.toLowerCase().includes(w)))
   const results = []
   for (const room of rooms) {
     const slug = room.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
