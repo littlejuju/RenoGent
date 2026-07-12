@@ -16,14 +16,16 @@ AI RENDER after renovation: ${renderPath}
 ${brief ? `Renovation brief (changes the brief requests are ALLOWED): ${brief}` : ''}
 
 Audit the RENDER against the ORIGINAL, strictest first:
-1. WINDOWS: same count, same wall positions, same proportions. Any extra or missing window = violation.
-2. DOORS: same count and wall positions.
-3. WALLS & GEOMETRY: same wall layout and camera angle; no invented openings, rooms or depth.
-4. CEILING: same false-ceiling shape unless the brief changes it.
-5. STRUCTURE: beams and columns visible in the original must remain in place.
+0. ROOM IDENTITY: state which room of the original the render depicts and where the camera stands. If the room cannot be identified from the geometry, that is itself a violation ("room identity unverifiable").
+1. HDB TYPOLOGY (domain prior — Singapore public housing): windows must be a horizontal band with a solid parapet wall below (sill ~1m above floor), dark-framed casement/sliding panels. Floor-to-ceiling windows, curtain walls, or a balcony not present in the original = violation. Ceiling ~2.6m, false ceiling only as perimeter L-box.
+2. WINDOWS: same count, same wall positions, same proportions as the original. Any extra or missing window = violation.
+3. DOORS: same count and wall positions.
+4. WALLS & GEOMETRY: same wall layout and camera angle; no invented openings, rooms or depth.
+5. CEILING: same false-ceiling shape unless the brief changes it.
+6. STRUCTURE: beams and columns visible in the original must remain in place.
 
 Output pure JSON only, no prose:
-{"pass": bool, "violations": [{"element": "window|door|wall|ceiling|structure", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`
+{"room": "which room + camera position, or 'unverifiable'", "pass": bool, "violations": [{"element": "room-identity|hdb-typology|window|door|wall|ceiling|structure", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`
   const { stdout } = await execFileP('claude', ['-p', prompt, '--model', MODEL, '--allowedTools', 'Read'], {
     encoding: 'utf8',
     timeout: 240000,

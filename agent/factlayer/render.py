@@ -16,6 +16,16 @@ STRUCTURE_LOCK = (
     "Keep the exact same room geometry: same walls, same windows, same window "
     "grilles, same false ceiling shape, same camera angle. "
 )
+# Domain prior — Singapore HDB window typology. The image model's aesthetic
+# default is floor-to-ceiling glass, which does not exist in HDB flats.
+HDB_TYPOLOGY = (
+    "This is a Singapore HDB flat. STRICT constraints: windows are standard HDB "
+    "windows with a solid wall parapet below (sill about 1 metre above floor), "
+    "top-hung casement or sliding panels with dark aluminium frames, arranged as "
+    "a horizontal band. ABSOLUTELY NO floor-to-ceiling windows, NO curtain walls, "
+    "NO balcony unless the floor plan shows one. Ceiling is flat concrete about "
+    "2.6m high; false ceiling only as a perimeter L-box. "
+)
 DEFAULT_STYLE = (
     "Renovate this room into a warm japandi style: matte oak wood flooring, "
     "warm cove lighting, linen curtains, tasteful furniture, realistic materials, "
@@ -63,13 +73,15 @@ def preprocess(src: str) -> str:
 def render(src: str, dst: str, style: str = DEFAULT_STYLE, edit_instruction: str = "", attempts: int = 3):
     src = preprocess(src)
     uri = "data:image/jpeg;base64," + base64.b64encode(pathlib.Path(src).read_bytes()).decode()
-    prompt = (edit_instruction + " " if edit_instruction else "") + STRUCTURE_LOCK + style
+    prompt = (edit_instruction + " " if edit_instruction else "") + STRUCTURE_LOCK + HDB_TYPOLOGY + style
     # nano-banana refuses doc-style inputs nondeterministically; the explicit
     # plan-mode phrasing recovers most refusals, so later attempts switch to it
-    plan_prompt = ("This image is a 2D architectural floor plan of an HDB flat. "
-                   "Generate a photorealistic interior render of the LIVING/DINING area "
-                   "as seen standing inside it after renovation. Respect the plan's wall, "
-                   "window and door positions exactly. ") + (edit_instruction or style)
+    plan_prompt = ("This image is a 2D architectural floor plan of a Singapore HDB flat. "
+                   "Generate a photorealistic interior render of the LIVING/DINING room only, "
+                   "camera standing at the internal corridor entrance looking toward the "
+                   "living/dining exterior wall (the wall with the window band and the "
+                   "2800mm-wide opening shown in the plan). Respect the plan's wall, window "
+                   "and door positions exactly. " + HDB_TYPOLOGY) + (edit_instruction or style)
     last = None
     for i in range(attempts):
         try:

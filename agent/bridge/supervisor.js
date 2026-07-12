@@ -127,12 +127,12 @@ async function onboardImage(m) {
         const re = await auditRender(file, out, m.body || '')
         log('AUDIT', re.pass ? 'PASS after re-edit' : `still failing: ${re.violations?.map((v) => v.element).join(', ')}`)
         await toConsole(re.pass
-          ? `📐 Re-audit passed. Corrected render:`
-          : `📐 Re-audit: ${re.violations?.length || 0} issue(s) remain — escalating to you with the best version:`, out)
+          ? `📐 Re-audit passed. ${re.room ? 'Room: ' + re.room + '. ' : ''}Corrected render:`
+          : `📐 Re-audit: ${re.violations?.length || 0} issue(s) remain — escalating to you with the best version (${re.room || 'room unverified'}):`, out)
       } catch { await toConsole(`📐 Corrected render (re-audit unavailable):`, out) }
     } else {
       log('AUDIT', audit ? 'PASS first try' : 'SKIPPED (audit error)')
-      await toConsole(`📐 Structure-locked render — audit ${audit ? 'passed: geometry matches your original' : 'skipped'}:`, out)
+      await toConsole(`📐 Structure-locked render — audit ${audit ? `passed: geometry matches your original. Room: ${audit.room || 'n/a'}` : 'skipped'}:`, out)
     }
 
     // 4. compliance summary from the latest triage run
