@@ -42,7 +42,9 @@ process.on('exit', () => { try { if (Number(fs.readFileSync(LOCK, 'utf8')) === p
 
 const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'demo/config.json'), 'utf8'))
 const RENO_GROUP = process.env.RENOAI_GROUP || cfg.reno_group
-const CONSOLE_GROUP = process.env.RENOAI_CONSOLE || cfg.console_group
+// multiple consoles supported: first entry is PRIMARY (approval drafts land there);
+// replies to floor plans always go back to the group they were sent in
+const CONSOLE_GROUPS = cfg.console_groups || [process.env.RENOAI_CONSOLE || cfg.console_group]
 
 const log = (tag, msg) => console.log(`\x1b[36m[${new Date().toISOString().slice(11, 19)}]\x1b[0m \x1b[1m${tag}\x1b[0m ${msg}`)
 
@@ -59,7 +61,7 @@ Today is ${new Date().toDateString()}. Given ONE incoming message, output pure J
 Resolve relative dates ("Friday","tmr") against today. Draft replies: firm but polite, cite specifics, English, <=60 words.`
 
 let client
-let consoleChat = null // approval + onboarding surface
+let consoleChats = [] // approval + onboarding surfaces; [0] = primary
 let renoChat = null // supervised renovation group
 let pendingSeq = 0
 const pending = new Map()
@@ -67,45 +69,66 @@ const AGENT_MARKS = ['🤖', '📒', '📐', '✅', '⚠️', '🔍', '🛠', '�
 
 const isAgentPost = (body) => AGENT_MARKS.some((m) => (body || '').startsWith(m))
 
-async function toConsole(text, mediaPath = null) {
-  if (!consoleChat) return console.log(`(console offline) ${text}`)
+async function toConsole(text, mediaPath = null, chat = null) {
+  const target = chat || consoleChats[0]
+  if (!target) return console.log(`(console offline) ${text}`)
   for (let i = 0; i < 2; i++) {
     try {
-      if (mediaPath) return await client.sendMessage(consoleChat.id._serialized, MessageMedia.fromFilePath(mediaPath), { caption: text })
-      return await client.sendMessage(consoleChat.id._serialized, text)
+      if (mediaPath) return await client.sendMessage(target.id._serialized, MessageMedia.fromFilePath(mediaPath), { caption: text })
+      return await client.sendMessage(target.id._serialized, text)
     } catch (e) {
       log('ERR', `toConsole attempt ${i + 1} failed: ${e.message.slice(0, 120)}`)
       await new Promise((r) => setTimeout(r, 3000))
     }
   }
 }
+// claude playground console (for cmd-channel self-tests), falls back to primary
+const claudeConsole = () => consoleChats.find((c) => /claude/i.test(c.name)) || consoleChats[0]
 
-async function propose(chatId, label, text) {
+// origin 'live' → card to PRIMARY console, only a human in WhatsApp can release it
+// origin 'test' → card to the claude playground console, cmd-channel ok = dry-run
+async function propose(chatId, label, text, origin = 'live') {
   const n = ++pendingSeq
-  pending.set(n, { chatId, text, label })
-  log('DRAFT', `[#${n}] → ${label}: ${text.slice(0, 100)}`)
-  await toConsole(`🤖 DRAFT [#${n}] → ${label}\n────────────\n${text}\n────────────\nreply "ok ${n}" to send · "no ${n}" to discard`)
+  pending.set(n, { chatId, text, label, origin })
+  const target = origin === 'test' ? claudeConsole() : consoleChats[0]
+  log('DRAFT', `[#${n}]${origin === 'test' ? ' [test]' : ''} → ${label}: ${text.slice(0, 100)}`)
+  await toConsole(`🤖 DRAFT${origin === 'test' ? ' [test]' : ''} [#${n}] → ${label}\n────────────\n${text}\n────────────\nreply "ok ${n}" to send · "no ${n}" to discard`, null, target)
 }
 
-async function decide(text, approver = 'homeowner') {
+// via 'wa' = a human typed in WhatsApp (full authority)
+// via 'cmd' = automation channel: may discard anything, may only DRY-RUN test drafts
+async function decide(text, approver = 'homeowner', via = 'wa') {
   const m = (text || '').trim().match(/^(ok|yes|send|no|drop)\s*#?(\d+)/i)
   if (!m) return false
-  const p = pending.get(Number(m[2]))
+  const n = Number(m[2])
+  const p = pending.get(n)
   if (!p) return false
-  pending.delete(Number(m[2]))
+  const confirmTo = p.origin === 'test' ? claudeConsole() : consoleChats[0]
   if (/^(no|drop)/i.test(m[1])) {
-    log('GATE', `[#${m[2]}] discarded by ${approver}`)
-    await toConsole(`✅ [#${m[2]}] discarded (by ${approver}).`)
-  } else {
-    await client.sendMessage(p.chatId, p.text)
-    log('SENT', `[#${m[2]}] approved by ${approver} → ${p.label}`)
-    await toConsole(`✅ [#${m[2]}] sent to ${p.label} (approved by ${approver}).`)
+    pending.delete(n)
+    log('GATE', `[#${n}] discarded by ${approver} (${via})`)
+    await toConsole(`✅ [#${n}] discarded (by ${approver}).`, null, confirmTo)
+    return true
   }
+  if (via === 'cmd') {
+    if (p.origin !== 'test') {
+      log('GATE', `[#${n}] REFUSED: live draft, cmd channel cannot approve — human gate only`)
+      return true
+    }
+    pending.delete(n)
+    log('GATE', `[#${n}] [test] dry-run approved via cmd — NOT sent`)
+    await toConsole(`✅ [dry-run] [#${n}] would send to ${p.label}:\n"${p.text}"\n(no real message sent — test drafts need a human "ok" in WhatsApp to actually send)`, null, confirmTo)
+    return true
+  }
+  pending.delete(n)
+  await client.sendMessage(p.chatId, p.text)
+  log('SENT', `[#${n}] approved by ${approver} → ${p.label}`)
+  await toConsole(`✅ [#${n}] sent to ${p.label} (approved by ${approver}).`, null, confirmTo)
   return true
 }
 
 // ---------- console: floor-plan onboarding ----------
-async function onboardImage(m) {
+async function onboardImage(m, srcChat) {
   const media = await m.downloadMedia()
   if (!media) return
   const ext = (media.mimetype || 'image/jpeg').split('/')[1].split(';')[0]
@@ -116,9 +139,11 @@ async function onboardImage(m) {
   log('ONBOARD', `image received -> ${file} (caption: ${m.body || 'none'})`)
 
   // visible liveness: keep the WhatsApp "typing…" indicator on while working
-  const typer = setInterval(() => { try { consoleChat?.sendStateTyping() } catch {} }, 20000)
-  try { consoleChat?.sendStateTyping() } catch {}
-  const stopTyping = () => { clearInterval(typer); try { consoleChat?.clearState() } catch {} }
+  const typer = setInterval(() => { try { srcChat?.sendStateTyping() } catch {} }, 20000)
+  try { srcChat?.sendStateTyping() } catch {}
+  const stopTyping = () => { clearInterval(typer); try { srcChat?.clearState() } catch {} }
+  // all replies for this onboarding go back to the group the image came from
+  const say = (text, mediaPath = null) => toConsole(text, mediaPath, srcChat)
 
   const runRender = (src, dst, promptText) =>
     execFileP('python3', [path.join(ROOT, 'agent/factlayer/render.py'), src, dst, promptText], { timeout: 240000 })
@@ -127,24 +152,24 @@ async function onboardImage(m) {
   try {
     const { renderAllRooms } = await import('../factlayer/render_all.js')
     const style = m.body?.trim() || 'warm japandi style, matte oak flooring, warm cove lighting, linen curtains'
-    await toConsole(`📐 Received. Reading the plan into per-room briefs (fact layer), then rendering every room with your brief: "${style.slice(0, 120)}"…`)
+    await say(`📐 Received. Reading the plan into per-room briefs (fact layer), then rendering every room with your brief: "${style.slice(0, 120)}"…`)
     const res = await renderAllRooms(file, style, async (stage, room, payload) => {
-      if (stage === 'briefs') await toConsole(`🔍 Analyzing the floor plan into per-room briefs (walls, windows, doors, camera) — about 1 minute…`)
-      else if (stage === 'render') { log('ROOM', `rendering ${room.name}`); await toConsole(`🎨 Rendering ${room.name}…`) }
+      if (stage === 'briefs') await say(`🔍 Analyzing the floor plan into per-room briefs (walls, windows, doors, camera) — about 1 minute…`)
+      else if (stage === 'render') { log('ROOM', `rendering ${room.name}`); await say(`🎨 Rendering ${room.name}…`) }
       else if (stage === 'fix')
-        await toConsole(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
+        await say(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
       else if (stage === 'done')
-        await toConsole(`📐 ${room.name} — audit ${payload.audit?.pass ? '✅ PASSED (geometry matches plan)' : payload.audit ? `⚠️ ${(payload.audit.violations || []).length} issue(s) remain, escalated` : 'skipped'}`, payload.file)
-      else if (stage === 'error') await toConsole(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
+        await say(`📐 ${room.name} — audit ${payload.audit?.pass ? '✅ PASSED (geometry matches plan)' : payload.audit ? `⚠️ ${(payload.audit.violations || []).length} issue(s) remain, escalated` : 'skipped'}`, payload.file)
+      else if (stage === 'error') await say(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
     })
     if (res.is_floor_plan) {
       const ok = res.results.filter((r) => !r.error).length
-      await toConsole(`✅ Whole-flat render complete: ${ok}/${res.results.length} rooms delivered.`)
+      await say(`✅ Whole-flat render complete: ${ok}/${res.results.length} rooms delivered.`)
       const triagePath = path.join(ROOT, 'demo/triage-output.json')
       if (fs.existsSync(triagePath)) {
         const t = JSON.parse(fs.readFileSync(triagePath, 'utf8'))
         const icon = { green: '🟢', amber: '🟡', red: '🔴', escalate: '🟣' }
-        await toConsole(`⚠️ Compliance triage for your requested works (citations verbatim-verified against hdb.gov.sg):\n${t.map((r) => `${icon[r.classification]} ${r.id}: ${r.reasoning.split('.')[0]}.`).join('\n')}`)
+        await say(`⚠️ Compliance triage for your requested works (citations verbatim-verified against hdb.gov.sg):\n${t.map((r) => `${icon[r.classification]} ${r.id}: ${r.reasoning.split('.')[0]}.`).join('\n')}`)
       }
       stopTyping()
       return
@@ -154,7 +179,7 @@ async function onboardImage(m) {
     log('ERR', `whole-flat path failed, falling back to single render: ${err.message.slice(0, 150)}`)
   }
 
-  await toConsole(`📐 Treating this as a room photo. Rendering with geometry pinned to your original, then auditing…`)
+  await say(`📐 Treating this as a room photo. Rendering with geometry pinned to your original, then auditing…`)
   try {
     // 1. structure-locked render (locked recipe, ~11s)
     let out = file.replace(/\.[a-z]+$/, '-render.png')
@@ -162,14 +187,14 @@ async function onboardImage(m) {
     await runRender(file, out, style)
 
     // 2. audit hook: render vs original, element by element
-    await toConsole(`🔍 Auditing render against your original — windows, doors, walls, ceiling, beams & columns…`)
+    await say(`🔍 Auditing render against your original — windows, doors, walls, ceiling, beams & columns…`)
     let audit
     try { audit = await auditRender(file, out, m.body || '') } catch (e) { log('ERR', `audit failed: ${e.message}`); audit = null }
 
     // 3. violations -> surgical corrective re-edit -> re-audit
     if (audit && !audit.pass && audit.violations?.length) {
       const list = audit.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')
-      await toConsole(`🛠 Audit caught ${audit.violations.length} violation(s):\n${list}\nApplying surgical re-edit (only the offending elements)…`)
+      await say(`🛠 Audit caught ${audit.violations.length} violation(s):\n${list}\nApplying surgical re-edit (only the offending elements)…`)
       log('AUDIT', `FAIL: ${audit.violations.map((v) => v.element).join(', ')}`)
       const fixes = audit.violations.map((v) => v.edit_instruction).join(' ')
       const fixed = out.replace('-render.png', '-render-fixed.png')
@@ -178,13 +203,13 @@ async function onboardImage(m) {
       try {
         const re = await auditRender(file, out, m.body || '')
         log('AUDIT', re.pass ? 'PASS after re-edit' : `still failing: ${re.violations?.map((v) => v.element).join(', ')}`)
-        await toConsole(re.pass
+        await say(re.pass
           ? `📐 Re-audit passed. ${re.room ? 'Room: ' + re.room + '. ' : ''}Corrected render:`
           : `📐 Re-audit: ${re.violations?.length || 0} issue(s) remain — escalating to you with the best version (${re.room || 'room unverified'}):`, out)
-      } catch { await toConsole(`📐 Corrected render (re-audit unavailable):`, out) }
+      } catch { await say(`📐 Corrected render (re-audit unavailable):`, out) }
     } else {
       log('AUDIT', audit ? 'PASS first try' : 'SKIPPED (audit error)')
-      await toConsole(`📐 Structure-locked render — audit ${audit ? `passed: geometry matches your original. Room: ${audit.room || 'n/a'}` : 'skipped'}:`, out)
+      await say(`📐 Structure-locked render — audit ${audit ? `passed: geometry matches your original. Room: ${audit.room || 'n/a'}` : 'skipped'}:`, out)
     }
 
     // 4. compliance summary from the latest triage run
@@ -193,26 +218,26 @@ async function onboardImage(m) {
       const t = JSON.parse(fs.readFileSync(triagePath, 'utf8'))
       const icon = { green: '🟢', amber: '🟡', red: '🔴', escalate: '🟣' }
       const lines = t.map((r) => `${icon[r.classification]} ${r.id}: ${r.reasoning.split('.')[0]}.`).join('\n')
-      await toConsole(`⚠️ Compliance triage (every citation verbatim-verified against hdb.gov.sg):\n${lines}`)
+      await say(`⚠️ Compliance triage (every citation verbatim-verified against hdb.gov.sg):\n${lines}`)
     }
   } catch (err) {
     log('ERR', `onboard pipeline failed: ${err.message}`)
-    await toConsole(`⚠️ Pipeline error — image logged to fact layer, retry with another photo.`)
+    await say(`⚠️ Pipeline error — image logged to fact layer, retry with another photo.`)
   } finally {
     stopTyping()
   }
 }
 
-async function onConsoleMessage(m) {
+async function onConsoleMessage(m, srcChat) {
   if (isAgentPost(m.body)) return
   const who = m.fromMe ? client.info.pushname : m._data?.notifyName || 'family member'
-  if (m.hasMedia) return onboardImage(m)
-  if (await decide(m.body, who)) return
+  if (m.hasMedia) return onboardImage(m, srcChat)
+  if (await decide(m.body, who, 'wa')) return
   // anything else in the console is ignored by design (privacy: no parsing, no storage)
 }
 
 // ---------- reno group: supervision ----------
-async function onRenoMessage(m) {
+async function onRenoMessage(m, origin = 'live') {
   const sender = m._data?.notifyName || m.author || 'contractor'
   log('MSG-IN', `${sender}: ${m.body}`)
   let x
@@ -223,9 +248,9 @@ async function onRenoMessage(m) {
   if (x.is_commitment && x.item) {
     const entry = ledger.append({ who: sender, item: x.item, promised_date: x.promised_date, source_msg: m.body, chat: renoChat?.name, ts: new Date().toISOString() })
     log('LEDGER', `${entry.id}: "${entry.item}" by ${entry.promised_date || 'unspecified'} (${sender})`)
-    await toConsole(`📒 Logged ${entry.id}: "${entry.item}" — promised ${entry.promised_date || 'no date'} by ${sender}`)
+    await toConsole(`📒 Logged ${entry.id}: "${entry.item}" — promised ${entry.promised_date || 'no date'} by ${sender}`, null, origin === 'test' ? claudeConsole() : null)
   }
-  if (x.needs_reply && x.draft_reply) await propose(renoChat.id._serialized, renoChat.name, x.draft_reply)
+  if (x.needs_reply && x.draft_reply) await propose(renoChat.id._serialized, renoChat.name, x.draft_reply, origin)
 }
 
 async function chaseSlippage() {
@@ -257,23 +282,25 @@ client.on('ready', async () => {
   log('READY', `riding ${client.info.pushname} (${client.info.wid.user})`)
   const chats = await client.getChats()
   const findGroup = (name) => chats.find((c) => c.isGroup && c.name.toLowerCase().includes(name.toLowerCase()))
-  consoleChat = findGroup(CONSOLE_GROUP)
+  consoleChats = CONSOLE_GROUPS.map(findGroup).filter(Boolean)
   renoChat = findGroup(RENO_GROUP)
-  log('WIRE', `console: ${consoleChat ? '"' + consoleChat.name + '"' : 'NOT FOUND — create a group named "' + CONSOLE_GROUP + '"'}`)
+  consoleChats.forEach((c, i) => log('WIRE', `console[${i}]${i === 0 ? ' (primary/human gate)' : ''}: "${c.name}"`))
+  if (!consoleChats.length) log('WIRE', `console: NOT FOUND — create a group matching one of: ${CONSOLE_GROUPS.join(', ')}`)
   log('WIRE', `reno group: ${renoChat ? '"' + renoChat.name + '"' : 'NOT FOUND — create a group named "' + RENO_GROUP + '"'}`)
   log('WIRE', `whitelist active: all other chats are dropped at entry`)
-  if (consoleChat) await toConsole(`🤖 RenoAI online. Send a floor plan / room photo (with a style caption) to start. Contractor promises in "${renoChat?.name || RENO_GROUP}" are logged automatically; overdue ones produce chase drafts for your approval.`)
+  if (consoleChats[0]) await toConsole(`🤖 RenoAI online. Send a floor plan (caption = your style brief) for a whole-flat per-room render, or a room photo for a single render. Contractor promises in "${renoChat?.name || RENO_GROUP}" are logged; overdue ones produce chase drafts needing your "ok".`)
   await chaseSlippage()
 
   const route = async (m) => {
     const chatId = (m.fromMe ? m.to : m.from) || ''
-    if (consoleChat && chatId === consoleChat.id._serialized) {
+    const console_ = consoleChats.find((c) => chatId === c.id._serialized)
+    if (console_) {
       // console = household decision group: every member (homeowner, spouse,
       // family) can feed plans and approve drafts — membership is the ACL
-      return onConsoleMessage(m)
+      return onConsoleMessage(m, console_)
     }
     if (renoChat && chatId === renoChat.id._serialized) {
-      if (!m.fromMe) return onRenoMessage(m)
+      if (!m.fromMe) return onRenoMessage(m, 'live')
       return
     }
     // whitelist: every other chat is dropped here — not read, not stored
@@ -298,17 +325,18 @@ async function handleCommand(line) {
   if (!t) return
   const [cmd, ...rest] = t.split(' ')
   try {
-    if (cmd === 'img' && consoleChat) {
-      await client.sendMessage(consoleChat.id._serialized, MessageMedia.fromFilePath(rest[0]), { caption: rest.slice(1).join(' ') })
-      log('CMD', `img posted: ${rest[0]}`)
-    } else if (cmd === 'say' && consoleChat) {
-      await client.sendMessage(consoleChat.id._serialized, rest.join(' '))
-      log('CMD', `say posted: ${rest.join(' ')}`)
+    const playground = claudeConsole() // cmd channel only ever touches the claude console
+    if (cmd === 'img' && playground) {
+      await client.sendMessage(playground.id._serialized, MessageMedia.fromFilePath(rest[0]), { caption: rest.slice(1).join(' ') })
+      log('CMD', `img posted to "${playground.name}": ${rest[0]}`)
+    } else if (cmd === 'say' && playground) {
+      await client.sendMessage(playground.id._serialized, rest.join(' '))
+      log('CMD', `say posted to "${playground.name}": ${rest.join(' ')}`)
     } else if (cmd === 'sim') {
       log('CMD', `simulating contractor message: ${rest.join(' ')}`)
-      await onRenoMessage({ body: rest.join(' '), _data: { notifyName: 'Contractor T' } })
+      await onRenoMessage({ body: rest.join(' '), _data: { notifyName: 'Contractor T' } }, 'test')
     } else {
-      await decide(t)
+      await decide(t, 'claude-cmd', 'cmd')
     }
   } catch (e) { log('ERR', `cmd failed: ${e.message.slice(0, 150)}`) }
 }
@@ -330,5 +358,5 @@ setInterval(() => {
 const rl = readline.createInterface({ input: process.stdin })
 rl.on('line', handleCommand)
 
-log('INIT', `auth=${AUTH_PATH} console="${CONSOLE_GROUP}" reno="${RENO_GROUP}"`)
+log('INIT', `auth=${AUTH_PATH} consoles=${JSON.stringify(CONSOLE_GROUPS)} reno="${RENO_GROUP}"`)
 client.initialize()

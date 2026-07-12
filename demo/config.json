@@ -1,4 +1,4 @@
 {
   "reno_group": "renoai demo",
-  "console_group": "reno agent console claude"
+  "console_groups": ["reno agent console - test", "reno agent console claude"]
 }
