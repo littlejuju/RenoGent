@@ -7,6 +7,7 @@
     "demo": "node demo/run_demo.js",
     "supervise": "node agent/bridge/supervisor.js",
     "render:candidates": "node demo/render_candidates_no_claude.js",
+    "render:whitebox:living": "python3 demo/render_living_whitebox.py",
     "audit:render": "node agent/factlayer/release_gate.js",
     "audit:living": "python3 agent/factlayer/hooks/living_dining.py",
     "triage:live": "node agent/compliance/triage.js",

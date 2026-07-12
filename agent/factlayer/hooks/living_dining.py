@@ -6,7 +6,7 @@ quality; it blocks obvious candidates before they can be promoted to any
 human-facing surface:
 
 - visible window grid / horizontal bars
-- missing same-wall bright door+window composition
+- missing/verifiably hidden HDB window-wall parapet
 - suspicious side-wall glazed door panel
 
 Final pass still requires homeowner approval.
@@ -88,12 +88,14 @@ def audit(path: Path) -> dict:
     # Window grids / horizontal bars: many dark rows or columns crossing the
     # bright band indicate generated grille/muntin artifacts.
     h_flags = []
-    for y in range(wy0 + 3, wy1 - 3):
+    h_check_y0 = wy0 + max(3, int(band_h * 0.18))
+    h_check_y1 = wy1 - max(3, int(band_h * 0.18))
+    for y in range(h_check_y0, h_check_y1):
         dark = sum(1 for x in range(wx0, wx1) if pix[x, y] < 178)
         h_flags.append(dark / band_w > 0.20)
     horizontal_bars = len(runs(h_flags, min_len=1))
     horizontal_rows = sum(1 for flag in h_flags if flag)
-    horizontal_row_ratio = horizontal_rows / max(1, band_h)
+    horizontal_row_ratio = horizontal_rows / max(1, (h_check_y1 - h_check_y0))
 
     vertical_flags = []
     for x in range(wx0 + 3, wx1 - 3):
@@ -102,7 +104,47 @@ def audit(path: Path) -> dict:
     vertical_bars = len(runs(vertical_flags, min_len=1))
 
     violations = []
-    if horizontal_bars >= 3 or horizontal_row_ratio > 0.05:
+    # A Living/Dining pass needs a verifiable HDB window-wall signal. Floor-length
+    # curtains are allowed, but they cannot hide the key structural fact: this is
+    # an HDB window band with a solid sill/parapet below, not a floor-to-ceiling
+    # window or balcony door.
+    central_mid = [
+        pix[x, y]
+        for y in range(int(h * 0.33), int(h * 0.78))
+        for x in range(int(w * 0.12), int(w * 0.88))
+    ]
+    central_dark_ratio = sum(1 for v in central_mid if v < 160) / max(1, len(central_mid))
+    if band_h < h * 0.035 and central_dark_ratio > 0.65:
+        violations.append(
+            {
+                "element": "window_wall_unverifiable",
+                "evidence": "Only a tiny bright slit is visible while a full-height curtain/wall hides the window area; HDB sill/parapet cannot be verified.",
+            }
+        )
+
+    parapet_y0 = min(h - 1, wy1 + 4)
+    parapet_y1 = min(h - 1, wy1 + int(h * 0.16))
+    if parapet_y1 > parapet_y0 and band_w > w * 0.35:
+        px0, px1 = int(wx0 + band_w * 0.18), int(wx1 - band_w * 0.18)
+        parapet_vals = [
+            pix[x, y]
+            for y in range(parapet_y0, parapet_y1)
+            for x in range(px0, px1)
+        ]
+        parapet_bright_ratio = sum(1 for v in parapet_vals if v >= 205) / max(1, len(parapet_vals))
+        parapet_mid_ratio = sum(1 for v in parapet_vals if 120 <= v <= 210) / max(1, len(parapet_vals))
+        if parapet_bright_ratio > 0.42 or parapet_mid_ratio < 0.22:
+            violations.append(
+                {
+                    "element": "hdb_parapet_missing",
+                    "evidence": "The area below the window reads as glass/light rather than a solid HDB wall/parapet.",
+                }
+            )
+    else:
+        parapet_bright_ratio = None
+        parapet_mid_ratio = None
+
+    if horizontal_bars >= 3 or (horizontal_bars >= 2 and horizontal_row_ratio > 0.05) or horizontal_row_ratio > 0.18:
         violations.append(
             {
                 "element": "window_grid",
@@ -121,13 +163,13 @@ def audit(path: Path) -> dict:
             }
         )
 
-    # Same-wall composition: the bright band should span a meaningful width and
-    # include a door-like bright zone next to the window zone, not a tiny window.
-    if band_w < w * 0.35:
+    # Living/Dining window-wall composition: the bright window/curtain band
+    # should span a meaningful width, not collapse into a tiny isolated patch.
+    if band_w < w * 0.30:
         violations.append(
             {
-                "element": "same_wall_composition",
-                "evidence": "Bright window/door band is too narrow to represent same-wall bi-fold door + window.",
+                "element": "window_wall_composition",
+                "evidence": "Bright window/curtain band is too narrow to represent the Living/Dining window wall.",
             }
         )
 
@@ -182,6 +224,9 @@ def audit(path: Path) -> dict:
             "window_band_box_resized": [wx0, wy0, wx1, wy1],
             "horizontal_bars": horizontal_bars,
             "horizontal_row_ratio": round(horizontal_row_ratio, 3),
+            "central_dark_ratio": round(central_dark_ratio, 3),
+            "parapet_bright_ratio": None if parapet_bright_ratio is None else round(parapet_bright_ratio, 3),
+            "parapet_mid_ratio": None if parapet_mid_ratio is None else round(parapet_mid_ratio, 3),
             "vertical_bars": vertical_bars,
             "band_width_ratio": round(band_w / w, 3),
         },
