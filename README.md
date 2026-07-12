@@ -20,6 +20,7 @@
 ## Capability map
 
 ```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 8, "rankSpacing": 36, "wrappingWidth": 900, "markdownAutoWrap": false}, "themeVariables": {"fontSize": "12px"}}}%%
 flowchart LR
     RA["🤖 RenoAI — agent executes · human decides"]
 
