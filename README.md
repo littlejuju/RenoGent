@@ -20,7 +20,7 @@
 ## Capability map
 
 ```mermaid
-flowchart TD
+flowchart LR
     RA["🤖 RenoAI — one-person renovation company<br/><b>agent executes · human holds judgment</b>"]
 
     RA --> P["1 · Fact layer (perception)"]
