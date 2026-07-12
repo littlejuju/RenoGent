@@ -157,12 +157,14 @@ async function onboardImage(m, srcChat) {
     await say(`📐 Received. Reading the plan into per-room briefs (fact layer), then rendering every room with your brief: "${style.slice(0, 120)}"…`)
     const res = await renderAllRooms(file, style, async (stage, room, payload) => {
       if (stage === 'briefs') await say(`🔍 Analyzing the floor plan into per-room briefs (walls, windows, doors, camera) — about 1 minute…`)
-      else if (stage === 'camera') await say(`📍 ${room.name} — red dot = where you stand, arrow = where you look.\nFrom here you should see: ${room.visible_from_camera || room.camera}`, payload.file)
       else if (stage === 'render') { log('ROOM', `rendering ${room.name}`); await say(`🎨 Rendering ${room.name}…`) }
       else if (stage === 'fix')
         await say(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
-      else if (stage === 'done')
-        await say(`📐 ${room.name} — audit ${payload.audit?.pass ? '✅ PASSED (geometry matches plan)' : payload.audit ? `⚠️ ${(payload.audit.violations || []).length} issue(s) remain, escalated` : 'skipped'}`, payload.file)
+      else if (stage === 'done') {
+        if (payload.cameraPlan)
+          await say(`📍 ${room.name} — viewpoint for render #${payload.hash}: red dot = where you stand, arrow = where you look.\nFrom here you should see: ${room.visible_from_camera || room.camera}`, payload.cameraPlan)
+        await say(`📐 ${room.name} — render #${payload.hash || 'n/a'} · audit ${payload.audit?.pass ? '✅ PASSED (viewpoint & geometry match the plan)' : payload.audit ? `⚠️ ${(payload.audit.violations || []).length} issue(s) remain, escalated` : 'skipped'}`, payload.file)
+      }
       else if (stage === 'error') await say(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
     })
     if (res.is_floor_plan) {
