@@ -17,6 +17,15 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { readPlanBriefs } from './plan_briefs.js'
 import { auditRender } from './audit.js'
+import {
+  auditAuditResult,
+  auditPromptContract,
+  buildRenderContract,
+  metaFatalCount,
+  renderGuard,
+  scoreMetaAudit,
+  visibleComponents,
+} from './meta_audit.js'
 
 const execFileP = promisify(execFile)
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -29,6 +38,8 @@ const HDB_TYPOLOGY = (
   'with a solid wall parapet below (sill about 1 metre above floor), casement or sliding ' +
   'panels in a horizontal band, modestly sized relative to the wall. Frame COLOUR and ' +
   'glazing style follow the homeowner brief (default dark aluminium ONLY if the brief is silent). ' +
+  'Do not add secondary security grilles, decorative muntins, louvres or extra horizontal bars ' +
+  'when the homeowner brief asks for a no-grid window. ' +
   'ABSOLUTELY NO floor-to-ceiling windows, NO curtain walls, NO balcony unless the floor plan ' +
   'shows one. Flat concrete ceiling about 2.6m; false ceiling only as a perimeter L-box. ' +
   'KITCHEN RULE: the window sits ABOVE the counter and backsplash (sill ~1.1-1.2m); the sink ' +
@@ -39,26 +50,36 @@ const HDB_TYPOLOGY = (
 const runRender = (src, dst, prompt) =>
   execFileP('python3', [path.join(HERE, 'render.py'), src, dst, prompt], { timeout: 240000 })
 
-function roomPrompt(room, style) {
-  const noWindows = !room.expected_components?.some((c) => /window/i.test(c.what)) && !/window band|window on|windows on/i.test(room.windows || '')
+export function roomPrompt(room, style) {
+  const contract = buildRenderContract(room, style)
+  const inView = contract.inView
+  const outOfView = contract.outOfView
+  const windowInstruction = contract.hasVisibleWindow
+    ? `Windows visible from this camera: ${room.windows || 'as drawn on the plan'}. `
+    : `No windows are visible from this camera. Room-level window facts, if any, are outside this view unless listed in the in-view manifest: ${room.windows || 'none'}. `
+  const doorInstruction = contract.visibleDoors
+    ? `Doors/openings visible from this camera: ${contract.visibleDoors}. Do not render any other room doors, frames, thresholds or handles. `
+    : `No doors, openings, doorframes, thresholds or handles are visible from this camera unless explicitly listed in the in-view manifest. `
   return (
     `This image is a 2D architectural floor plan of a Singapore HDB flat. ` +
     `Generate a photorealistic interior render of the ${room.name} ONLY (approx ${room.approx_size_mm || 'as drawn'}). ` +
     `NEVER render any text, labels, dimension numbers or annotations from the plan into the image — no "DROP", no room names, no measurements anywhere. ` +
     `ORIENTATION IS ABSOLUTE: left/right as seen from the camera must match the plan exactly — NEVER mirror or swap sides. ` +
-    (noWindows ? `THIS ROOM HAS NO WINDOWS on the plan — render ZERO windows; it is an internal room lit by ceiling fixtures only. ` : '') +
+    (!contract.hasVisibleWindow ? `THIS CAMERA VIEW HAS ZERO VISIBLE WINDOWS — render no windows in the image. ` : '') +
     (room.fixtures ? `Sanitary/kitchen fixtures EXACTLY as drawn on the plan: ${room.fixtures}. Never add a fixture the plan does not show in this room (e.g. no toilet in the bathroom when the toilet pan is drawn in the separate W.C.). ` : '') +
-    `Camera: ${room.camera}. ` +
-    (room.visible_from_camera ? `FROM THIS EXACT CAMERA the visible features are: ${room.visible_from_camera}. Place every feature on the correct side. ` : '') +
-    (room.expected_components?.length ? `The view must contain EXACTLY these architectural components, nothing more, nothing less: ${JSON.stringify(room.expected_components)}. ` : '') +
-    (room.actual_function ? `Space function (geometry-verified, may differ from the plan label): ${room.actual_function}. Design for this ACTUAL function. ` : '') +
-    (room.design_notes ? `Design decisions to follow (each has a circulation reason): ${room.design_notes}. No unjustified special elements. ` : '') +
-    `Windows: ${room.windows || 'as drawn on the plan'}. Doors: ${room.doors || 'as drawn'}. ` +
-    `${room.render_brief || ''} ` + HDB_TYPOLOGY +
-    `Renovation style requested by the homeowner: ${style}. ` +
+    `Camera: ${contract.scopedCamera}. ` +
+    (contract.visibleSummary ? `FROM THIS EXACT CAMERA the visible features are: ${contract.visibleSummary}. Place every feature on the correct side. ` : '') +
+    (inView.length ? `The view must contain EXACTLY these architectural components that are in front of or beside the camera, nothing more, nothing less: ${JSON.stringify(inView)}. ` : '') +
+    (outOfView.length ? `These plan components are BEHIND the camera or outside the view cone and MUST NOT be visible in the render: ${JSON.stringify(outOfView)}. ` : '') +
+    (contract.scopedActualFunction ? `Space function (geometry-verified, may differ from the plan label): ${contract.scopedActualFunction}. Design for this ACTUAL function. ` : '') +
+    (contract.scopedDesignNotes ? `Design decisions to follow (each has a circulation reason): ${contract.scopedDesignNotes}. No unjustified special elements. ` : '') +
+    windowInstruction + doorInstruction +
+    `${contract.scopedRenderBrief || ''} ` + HDB_TYPOLOGY +
+    `Renovation style requested by the homeowner: ${contract.scopedStyle}. ` +
     `HOMEOWNER VETOES OVERRIDE THE DEFAULT LOOK: any brief item phrased as a prohibition ` +
     `("no grid on window", "no false ceiling") is a HARD constraint — "no grid" means ` +
-    `single undivided glass panes: no muntins, no louvres, no slats.`
+    `single undivided glass panes: no muntins, no louvres, no slats, no visible security grille, no extra horizontal bars. ` +
+    renderGuard(room, style)
   )
 }
 
@@ -73,6 +94,7 @@ const scoreAudit = (audit) => {
   if (audit.pass) return 0
   return (audit.violations || []).reduce((s, v) => s + (isFatal(v) ? 10 : 1), 0)
 }
+const candidatePass = (candidate) => candidate.audit?.pass && candidate.metaAudit?.pass
 
 // one viewpoint-plan PER RENDER, stamped with the render's hash so the pair
 // (render ↔ where-the-camera-stands) is verifiable and can't be mixed up
@@ -89,17 +111,20 @@ async function annotateCamera(planPath, room, slug, hash) {
 
 async function attemptRoom(planPath, room, slug, style, onProgress) {
   const candidates = []
+  const auditComponents = visibleComponents(room)
+  const contract = buildRenderContract(room, style)
   const auditOnce = async (file, camPlan) => {
     try {
-      return await auditRender(path.resolve(camPlan || planPath), path.resolve(file), style, room.name, room.expected_components, room.approx_size_mm || '')
+      return await auditRender(path.resolve(camPlan || planPath), path.resolve(file), style, room.name, auditComponents, room.approx_size_mm || '')
     } catch { return null }
   }
-  const record = async (file) => {
+  const record = async (file, promptAudit) => {
     const hash = shortHash(file)
     const cameraPlan = await annotateCamera(planPath, room, slug, hash)
     await onProgress('audit', room, null)
     const audit = await auditOnce(file, cameraPlan)
-    const c = { file, hash, cameraPlan, audit, score: scoreAudit(audit) }
+    const metaAudit = auditAuditResult(audit, contract)
+    const c = { file, hash, cameraPlan, promptAudit, audit, metaAudit, score: scoreAudit(audit) + scoreMetaAudit(metaAudit) }
     candidates.push(c)
     return c
   }
@@ -112,20 +137,30 @@ async function attemptRoom(planPath, room, slug, style, onProgress) {
           [...new Set(candidates.flatMap((c) => c.audit?.violations || []).map((v) => v.edit_instruction))].join(' ')}`
       : ''
     const baseFile = planPath.replace(/\.[a-z]+$/i, `-${slug}-a${base}.png`)
+    const basePrompt = roomPrompt(room, style) + learned
+    const promptAudit = auditPromptContract(room, style, basePrompt)
+    if (!promptAudit.pass) {
+      throw new Error(`render prompt failed meta-audit: ${promptAudit.violations.map((v) => v.element).join(', ')}`)
+    }
     await onProgress('render', room, base > 1 ? { retry_base: base } : null)
-    await runRender(planPath, baseFile, roomPrompt(room, style) + learned)
-    let cur = await record(baseFile)
-    if (cur.audit?.pass) return { candidates, best: cur }
+    await runRender(planPath, baseFile, basePrompt)
+    let cur = await record(baseFile, promptAudit)
+    if (candidatePass(cur)) return { candidates, best: cur }
 
     for (let round = 1; round <= MAX_FIX_ROUNDS; round++) {
       if (!cur.audit?.violations?.length) break
       await onProgress('fix', room, cur.audit)
       const fixes = cur.audit.violations.map((v) => v.edit_instruction).join(' ')
       const fixedFile = planPath.replace(/\.[a-z]+$/i, `-${slug}-a${base}f${round}.png`)
-      await runRender(cur.file, fixedFile, `${fixes} Change ONLY these elements; keep everything else identical. ` + HDB_TYPOLOGY +
-        ` Homeowner vetoes still apply and override the default look: ${style}`)
-      const next = await record(fixedFile)
-      if (next.audit?.pass) return { candidates, best: next }
+      const fixPrompt = `${fixes} Change ONLY these elements; keep everything else identical. ` + HDB_TYPOLOGY +
+        ` Homeowner vetoes still apply and override the default look: ${contract.scopedStyle}. ` + renderGuard(room, style)
+      const fixPromptAudit = auditPromptContract(room, style, fixPrompt)
+      if (!fixPromptAudit.pass) {
+        throw new Error(`fix prompt failed meta-audit: ${fixPromptAudit.violations.map((v) => v.element).join(', ')}`)
+      }
+      await runRender(cur.file, fixedFile, fixPrompt)
+      const next = await record(fixedFile, fixPromptAudit)
+      if (candidatePass(next)) return { candidates, best: next }
       if (next.score >= cur.score) break // plateau: this base is a dead end, try a fresh base
       cur = next
     }
@@ -133,7 +168,7 @@ async function attemptRoom(planPath, room, slug, style, onProgress) {
   // HARD RULE: an image with structural (L1/L2) violations is NEVER released.
   // Only structurally-clean candidates are eligible; style issues (L3) may ship
   // with a warning because taste is the human's call — geometry is not.
-  const eligible = candidates.filter((c) => c.audit && fatalCount(c.audit) === 0)
+  const eligible = candidates.filter((c) => c.audit && fatalCount(c.audit) === 0 && metaFatalCount(c.metaAudit) === 0)
   if (eligible.length) {
     const best = eligible.reduce((a, b) => (b.score < a.score ? b : a), eligible[0])
     return { candidates, best, blocked: false }
@@ -169,20 +204,19 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}, roo
   for (const room of rooms) {
     const slug = room.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     try {
-      await onProgress('render', room, null)
       const { candidates, best, blocked } = await attemptRoom(planPath, room, slug, style, onProgress)
-      const status = blocked ? 'blocked' : best.audit?.pass ? 'passed' : 'style-escalation'
+      const status = blocked ? 'blocked' : candidatePass(best) ? 'passed' : 'style-escalation'
       const r = {
         room: room.name,
         // blocked rooms release NO image — the file stays on disk for forensics only
         file: blocked ? null : best.file,
         blockedFile: blocked ? best.file : null,
         hash: best.hash, cameraPlan: blocked ? null : best.cameraPlan,
-        audit: best.audit, status, attempts: candidates.length,
+        audit: best.audit, metaAudit: best.metaAudit, status, attempts: candidates.length,
       }
       results.push(r)
       fs.appendFileSync(path.join(path.dirname(planPath), 'render-audit-log.jsonl'),
-        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash: best.hash, render: best.file, viewpoint_plan: best.cameraPlan, status, attempts: candidates.length, attempt_scores: candidates.map((c) => c.score), audit_pass: best.audit?.pass ?? null, violations: best.audit?.violations?.length ?? null, audit: best.audit }) + '\n')
+        JSON.stringify({ ts: new Date().toISOString(), room: room.name, hash: best.hash, render: best.file, viewpoint_plan: best.cameraPlan, status, attempts: candidates.length, attempt_scores: candidates.map((c) => c.score), audit_pass: best.audit?.pass ?? null, meta_audit_pass: best.metaAudit?.pass ?? null, violations: best.audit?.violations?.length ?? null, meta_violations: best.metaAudit?.violations?.length ?? null, prompt_preflight: best.promptAudit, audit: best.audit, meta_audit: best.metaAudit }) + '\n')
       await onProgress('done', room, r)
     } catch (e) {
       results.push({ room: room.name, error: e.message })

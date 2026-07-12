@@ -8,8 +8,9 @@
 //      and approve drafts. Floor plans in, approvals in, results out.
 //   2. the RENO group — the renovation group with contractors; read-only,
 //      except messages explicitly approved by the human.
-// Every outgoing message passes the human approval gate: drafts are posted to
-// the console as [#n] cards; only "ok n" (console or terminal) releases them.
+// Every outgoing message passes the human approval gate: live drafts are posted
+// to the console as [#n] cards; only "ok n" typed by a human in WhatsApp
+// releases them. The terminal command channel can dry-run test drafts only.
 //
 // Usage: node agent/bridge/supervisor.js      (group names in demo/config.json)
 import pkg from 'whatsapp-web.js'
@@ -494,6 +495,7 @@ process.on('uncaughtException', (e) => log('ERR', `uncaught: ${String(e?.message
 // ---------- local test-command channel ----------
 // Commands via stdin OR appended to demo/cmd.txt (for driving a detached process):
 //   img <path> [caption]  -> post an image into the console group as the homeowner
+//   post <path> [caption] -> post an already-generated image to the test console as the agent
 //   say <text>            -> post text into the console group as the homeowner
 //   sim <text>            -> simulate an incoming contractor message (no WhatsApp
 //                            message is sent anywhere; extraction+ledger+draft only)
@@ -507,6 +509,10 @@ async function handleCommand(line) {
     if (cmd === 'img' && playground) {
       await client.sendMessage(playground.id._serialized, MessageMedia.fromFilePath(rest[0]), { caption: rest.slice(1).join(' ') })
       log('CMD', `img posted to "${playground.name}": ${rest[0]}`)
+    } else if (cmd === 'post') {
+      const target = testConsole()
+      await toConsole(rest.slice(1).join(' ') || `Manual render candidate: ${path.basename(rest[0])}`, rest[0], target)
+      log('CMD', `post sent to "${target?.name}": ${rest[0]}`)
     } else if (cmd === 'say' && playground) {
       await client.sendMessage(playground.id._serialized, rest.join(' '))
       log('CMD', `say posted to "${playground.name}": ${rest.join(' ')}`)

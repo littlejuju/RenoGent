@@ -13,18 +13,24 @@ import base64, json, os, pathlib, sys, time, urllib.request
 API = "https://api.replicate.com/v1/models/google/nano-banana/predictions"
 
 STRUCTURE_LOCK = (
-    "Keep the exact same room geometry: same walls, same windows, same window "
-    "grilles, same false ceiling shape, same camera angle. "
+    "Keep the exact same room geometry: same wall positions, same window and "
+    "door openings, same structural beams/columns, same camera angle. Decorative "
+    "details such as window grilles/muntins, curtains, cabinetry, lighting, and "
+    "false-ceiling/soffit treatments may be changed or removed when the prompt "
+    "explicitly requires it. "
 )
 # Domain prior — Singapore HDB window typology. The image model's aesthetic
 # default is floor-to-ceiling glass, which does not exist in HDB flats.
 HDB_TYPOLOGY = (
     "This is a Singapore HDB flat. STRICT constraints: windows are standard HDB "
     "windows with a solid wall parapet below (sill about 1 metre above floor), "
-    "top-hung casement or sliding panels with dark aluminium frames, arranged as "
-    "a horizontal band. ABSOLUTELY NO floor-to-ceiling windows, NO curtain walls, "
-    "NO balcony unless the floor plan shows one. Ceiling is flat concrete about "
-    "2.6m high; false ceiling only as a perimeter L-box. "
+    "top-hung casement or sliding panels arranged as a horizontal band. Window "
+    "frame colour follows the prompt/homeowner brief; use dark aluminium only "
+    "when no colour is specified. Do not add secondary security grilles, "
+    "decorative muntins, louvres or extra horizontal bars when the homeowner "
+    "brief asks for a no-grid window. ABSOLUTELY NO floor-to-ceiling windows, NO "
+    "curtain walls, NO balcony unless the floor plan shows one. Ceiling is flat "
+    "concrete about 2.6m high unless the prompt explicitly asks for an L-box. "
 )
 DEFAULT_STYLE = (
     "Renovate this room into a warm japandi style: matte oak wood flooring, "
@@ -76,19 +82,26 @@ def render(src: str, dst: str, style: str = DEFAULT_STYLE, edit_instruction: str
     prompt = (edit_instruction + " " if edit_instruction else "") + STRUCTURE_LOCK + HDB_TYPOLOGY + style
     # nano-banana refuses doc-style inputs nondeterministically; the explicit
     # plan-mode phrasing recovers most refusals, so later attempts switch to it
-    plan_prompt = ("This image is a 2D architectural floor plan of a Singapore HDB flat. "
-                   "Generate a photorealistic interior render of the LIVING/DINING room only, "
-                   "camera standing at the internal corridor entrance looking toward the "
-                   "living/dining exterior wall (the wall with the window band and the "
-                   "2800mm-wide opening shown in the plan). Respect the plan's wall, window "
-                   "and door positions exactly. " + HDB_TYPOLOGY) + (edit_instruction or style)
+    plan_prompt = (
+        "This input may be a 2D architectural floor plan or a previous interior render. "
+        "Follow the room name, camera position, and constraints in the instructions below exactly; "
+        "do not default to Living/Dining or any other room. Respect the specified wall, window, "
+        "door and structural positions exactly. "
+        + HDB_TYPOLOGY
+        + (edit_instruction + " " if edit_instruction else "")
+        + style
+    )
     last = None
     for i in range(attempts):
         try:
             return _render_once(uri, dst, prompt if i < 1 else plan_prompt)
         except (RuntimeError, urllib.error.HTTPError) as e:
             last = e
-            wait = 12 if (isinstance(e, urllib.error.HTTPError) and e.code == 429) else 3
+            if isinstance(e, urllib.error.HTTPError) and e.code == 429:
+                retry_after = e.headers.get("Retry-After")
+                wait = int(retry_after) if retry_after and retry_after.isdigit() else min(90, 30 * (i + 1))
+            else:
+                wait = 3
             print(f"attempt {i+1}/{attempts} failed: {e} (retry in {wait}s)")
             time.sleep(wait)
     raise last

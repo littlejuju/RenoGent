@@ -36,7 +36,7 @@ Three things worth your attention:
 
 1. **Link once.** Scan a QR from your phone (WhatsApp → Linked Devices) — the exact same gesture as WhatsApp Web. That's the entire installation.
 2. **Create your console.** Make a WhatsApp group for your household (you + spouse/family) — e.g. "RenoGent Console". Group membership is the permission system: anyone in it can feed the agent and approve its actions.
-3. **Feed it.** Drop your floor plan or room photo into the console with a one-line brief ("hack the study wall, japandi style, S$50k"). The agent replies in the console with the verified structural fact layer, green/amber/red compliance triage (citations verbatim from hdb.gov.sg) and a structure-locked render.
+3. **Feed it.** Drop your floor plan or room photo into the console with a one-line brief ("hack the study wall, japandi style, S$50k"). The agent replies in the console with the structural fact layer, green/amber/red compliance triage (citations verbatim from hdb.gov.sg) and audited render attempts. The current demo has one fully passed floor-plan-to-render path (kitchen); other rooms are useful precisely because the audit catches unresolved structure/style issues instead of silently shipping them.
 4. **Supervise.** The agent watches your renovation group with contractors. Every promise ("tiling done by Friday") is logged to the commitment ledger; overdue promises trigger drafted chase messages delivered to your console — reply `ok 1` to send as yourself, `no 1` to discard. Either spouse can approve.
 5. **Stay on top without asking.** Reply `report` (or wait for Monday 9am) for progress, blockers, budget-vs-cap — and trade-matched acceptance checklists for freshly completed work, so you know how to inspect before you pay. `redo BEDROOM 1` re-renders a single room; `budget 48000` sets your cap.
 
@@ -104,6 +104,11 @@ are hard constraints). A render that can't pass after bounded retries (2 fresh b
 edits, plateau early-exit) is released as **best-of-N, labelled NOT passed**, with the remaining
 violations listed — never silently shipped.
 
+The render path also has a **meta-audit** layer: generation prompts are preflighted for
+fact-layer contradictions, visual audit results are checked for schema/logic consistency,
+and useful-but-off-contract renders are registered as alternate-view assets instead of being
+counted as primary passes. See [docs/meta-audit.md](docs/meta-audit.md).
+
 | The viewpoint plan | The audited render |
 |---|---|
 | ![Viewpoint plan: red dot camera marker and view cone stamped with the render hash](docs/assets/viewpoint-kitchen.jpg) | ![Kitchen render, hash-matched to the viewpoint plan](docs/assets/render-kitchen.jpg) |
@@ -142,4 +147,4 @@ We do not replace licensed contractors or professional engineers; all structural
 
 ## What's real vs. staged (honest disclosure)
 
-Real and working today, verified end-to-end over live WhatsApp: whole-flat per-room render pipeline with hash-paired viewpoint plans and the 3-layer audit ($0.04/render), metric-grounded floor-plan extraction, compliance triage with all-verbatim citations, decision-profile learning (top-3 → pick → auto-pick), commitment ledger + chase drafts behind the human approval gate, weekly report with budget + acceptance checklists. Hardcoded or staged for the demo: payment, auth, multi-user persistence (single-tenant on one machine today). Renders that fail audit are delivered honestly as NOT passed — you will see escalations in the demo, by design.
+Real and working today: the WhatsApp bridge as a live test bench; one audited floor-plan-to-render pass for the kitchen with a hash-paired viewpoint plan; the same audit loop catching unresolved issues on other rooms; metric-grounded floor-plan extraction; compliance triage with all-verbatim citations; decision-profile learning (top-3 → pick → auto-pick); commitment ledger + chase drafts behind the human approval gate; weekly report with budget + acceptance checklists. Hardcoded or staged for the demo: payment, auth, multi-user persistence, and broad production reliability beyond this single-tenant test bench. Renders that fail audit are delivered honestly as NOT passed or style-escalated — you will see escalations in the demo, by design.
