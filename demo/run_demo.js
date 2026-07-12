@@ -36,7 +36,7 @@ if (LIVE) {
 const items = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/fixtures/work-items.json'), 'utf8'))
 for (const t of triage) {
   const item = items.find((i) => i.id === t.id)
-  console.log(`\n${icon[t.classification] || '🟣'} ${t.id} ${item?.item || ''}`)
+  console.log(`\n${icon[t.classification] || '🟣'} ${t.id} ${item?.description || ''}`)
   console.log(`   ${t.reasoning.slice(0, 140)}`)
   for (const c of (t.citations || []).slice(0, 1))
     console.log(`   ${c.verified ? '✓ verified' : '✗ REJECTED'}: "${(c.quote || '').slice(0, 90)}…"\n     ${c.source_url}`)
