@@ -8,7 +8,7 @@ import fs from 'fs'
 import { askClaude, parseJson } from '../llm.js'
 import { verifyCitations, corpusAsContext } from './citation_gate.js'
 
-const SYSTEM = `You are the compliance module of RenoAI, an agent supervising an HDB flat renovation in Singapore.
+const SYSTEM = `You are the compliance module of RenoGent, an agent supervising an HDB flat renovation in Singapore.
 Classify each proposed work item strictly against the provided official HDB corpus (scraped verbatim from hdb.gov.sg).
 Rules:
 - "green": clearly allowed without an HDB permit (may still need registered contractor).

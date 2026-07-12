@@ -1,6 +1,6 @@
-<p align="center"><img src="docs/assets/logo.svg" width="110" alt="RenoAI logo — a floor plan with a camera viewpoint marker"></p>
+<p align="center"><img src="docs/assets/logo.svg" width="110" alt="RenoGent logo — a floor plan with a camera viewpoint marker"></p>
 
-# RenoAI — an AI renovator that replaces your interior designer's coordination layer
+# RenoGent — an AI renovator that replaces your interior designer's coordination layer
 
 <p><em>The logo is the product: a floor plan, a camera, and the proof they match.</em></p>
 
@@ -15,7 +15,7 @@
 ## How you use it (no new app)
 
 1. **Link once.** Scan a QR from your phone (WhatsApp → Linked Devices) — the exact same gesture as WhatsApp Web. That's the entire installation.
-2. **Create your console.** Make a WhatsApp group for your household (you + spouse/family) — e.g. "RenoAI Console". Group membership is the permission system: anyone in it can feed the agent and approve its actions.
+2. **Create your console.** Make a WhatsApp group for your household (you + spouse/family) — e.g. "RenoGent Console". Group membership is the permission system: anyone in it can feed the agent and approve its actions.
 3. **Feed it.** Drop your floor plan or room photo into the console with a one-line brief ("hack the study wall, japandi style, S$50k"). The agent replies in the console with the verified structural fact layer, green/amber/red compliance triage (citations verbatim from hdb.gov.sg) and a structure-locked render.
 4. **Supervise.** The agent watches your renovation group with contractors. Every promise ("tiling done by Friday") is logged to the commitment ledger; overdue promises trigger drafted chase messages delivered to your console — reply `ok 1` to send as yourself, `no 1` to discard. Either spouse can approve.
 
@@ -26,7 +26,7 @@
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 8, "rankSpacing": 36, "wrappingWidth": 900, "markdownAutoWrap": false}, "themeVariables": {"fontSize": "12px"}}}%%
 flowchart LR
-    RA["🤖 RenoAI — agent executes · human decides"]
+    RA["🤖 RenoGent — agent executes · human decides"]
 
     RA --> P["1 · Fact layer"]
     P --> P1["Plan → mm/px calibration + structure"]

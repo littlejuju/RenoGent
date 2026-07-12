@@ -1,4 +1,4 @@
-// LLM gateway — single entry point for every model call in RenoAI.
+// LLM gateway — single entry point for every model call in RenoGent.
 // Prefers the Anthropic SDK (ANTHROPIC_API_KEY); falls back to the local
 // `claude -p` CLI so the demo can run on a Claude subscription.
 import { execFileSync } from 'child_process'

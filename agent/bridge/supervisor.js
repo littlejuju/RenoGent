@@ -51,7 +51,7 @@ const CONSOLE_GROUPS = cfg.console_groups || [process.env.RENOAI_CONSOLE || cfg.
 
 const log = (tag, msg) => console.log(`\x1b[36m[${new Date().toISOString().slice(11, 19)}]\x1b[0m \x1b[1m${tag}\x1b[0m ${msg}`)
 
-const EXTRACT_SYSTEM = `You are the supervision module of RenoAI, monitoring a renovation WhatsApp group on behalf of the homeowner.
+const EXTRACT_SYSTEM = `You are the supervision module of RenoGent, monitoring a renovation WhatsApp group on behalf of the homeowner.
 Today is ${new Date().toDateString()}. Given ONE incoming message, output pure JSON:
 {
  "is_commitment": bool,
@@ -411,7 +411,7 @@ client.on('ready', async () => {
   if (!consoleChats.length) log('WIRE', `console: NOT FOUND — create a group matching one of: ${CONSOLE_GROUPS.join(', ')}`)
   log('WIRE', `reno group: ${renoChat ? '"' + renoChat.name + '"' : 'NOT FOUND — create a group named "' + RENO_GROUP + '"'}`)
   log('WIRE', `whitelist active: all other chats are dropped at entry`)
-  if (consoleChats[0]) await toConsole(`🤖 RenoAI online. Send a floor plan (caption = your style brief) for a whole-flat per-room render, or a room photo for a single render. Contractor promises in "${renoChat?.name || RENO_GROUP}" are logged; overdue ones produce chase drafts needing your "ok".`)
+  if (consoleChats[0]) await toConsole(`🤖 RenoGent online. Send a floor plan (caption = your style brief) for a whole-flat per-room render, or a room photo for a single render. Contractor promises in "${renoChat?.name || RENO_GROUP}" are logged; overdue ones produce chase drafts needing your "ok".`)
   await chaseSlippage()
 
   const route = async (m) => {
