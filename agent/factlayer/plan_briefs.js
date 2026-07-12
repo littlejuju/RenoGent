@@ -32,8 +32,13 @@ If it IS a floor plan, extract EVERY habitable room and output pure JSON:
    }
  ]
 }
+Also add per room:
+   "actual_function": "what this space REALLY is, judged from geometry — HDB plans often mislabel: a 'BALCONY' beside the kitchen that is enclosed, corridor-shaped (narrow, pass-through, leads to W.C./service area) is actually a service passage/hallway, not a leisure balcony. State your judgement and the geometric evidence (width, access, adjacency).",
+   "design_notes": "1-2 design decisions with REASONS grounded in circulation (动线): where people walk through this room, what must stay clear, why counters/half-walls/openings go where they go. Any special element (half-height wall, raised counter, island) MUST carry a justification or be omitted."
+
 Rules:
 - Include living/dining, kitchen, every bedroom, bathroom(s). Skip WC smaller than 2sqm, shelters, and corridors.
+- SANITY-CHECK every label against its geometry before trusting it (mislabeled balconies are classic in HDB plans).
 - Read window positions from the arc/line symbols on exterior walls; read dimensions from the printed mm numbers.
 - Camera always stands at a doorway or room corner INSIDE the room, looking toward the most characteristic wall (usually the window wall).
 - camera_px / look_at_px are pixel coordinates on the image as provided — be precise, they will be drawn on the plan and verified.

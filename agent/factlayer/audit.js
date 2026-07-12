@@ -20,7 +20,7 @@ If the ORIGINAL is a floor plan with a RED DOT + ARROW/CONE marker: that marks t
 
 Audit the RENDER against the ORIGINAL, strictest first:
 0. ROOM IDENTITY: state which room of the original the render depicts and where the camera stands.${expectedRoom ? ` If it does not match the expected room (${expectedRoom}) — wrong window wall, wrong proportions, wrong adjacencies — that is a violation.` : ''} If the room cannot be identified from the geometry, that is itself a violation ("room identity unverifiable").
-1. HDB TYPOLOGY (domain prior — Singapore public housing): windows must be a horizontal band with a solid parapet wall below (sill ~1m above floor), dark-framed casement/sliding panels. Floor-to-ceiling windows, curtain walls, or a balcony not present in the original = violation. Ceiling ~2.6m, false ceiling only as perimeter L-box.
+1. HDB TYPOLOGY (domain prior — Singapore public housing): windows must be a horizontal band with a solid parapet wall below (sill ~1m above floor; in kitchens the sill sits ABOVE the counter/backsplash at ~1.1-1.2m), dark-framed casement/sliding panels, modestly sized relative to the wall. Floor-to-ceiling windows, curtain walls, or a balcony not present in the original = violation. Windows overlapping/cutting into counters, sinks or cabinets = violation (fixtures and windows occupy separate vertical zones). Ceiling ~2.6m, false ceiling only as perimeter L-box.
 2. WINDOWS: same count, same wall positions, same proportions as the original. Any extra or missing window = violation.
 3. DOORS: same count and wall positions.
 4. WALLS & GEOMETRY: same wall layout and camera angle; no invented openings, rooms or depth.

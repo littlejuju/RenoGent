@@ -16,9 +16,12 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const HDB_TYPOLOGY = (
   'This is a Singapore HDB flat. STRICT constraints: windows are standard HDB windows ' +
   'with a solid wall parapet below (sill about 1 metre above floor), dark aluminium ' +
-  'framed casement or sliding panels in a horizontal band. ABSOLUTELY NO floor-to-ceiling ' +
-  'windows, NO curtain walls, NO balcony unless the floor plan shows one. Flat concrete ' +
-  'ceiling about 2.6m; false ceiling only as a perimeter L-box. '
+  'framed casement or sliding panels in a horizontal band, modestly sized relative to the wall. ' +
+  'ABSOLUTELY NO floor-to-ceiling windows, NO curtain walls, NO balcony unless the floor plan ' +
+  'shows one. Flat concrete ceiling about 2.6m; false ceiling only as a perimeter L-box. ' +
+  'KITCHEN RULE: the window sits ABOVE the counter and backsplash (sill ~1.1-1.2m); the sink ' +
+  'may sit under the window but the window must never overlap or cut into counters or cabinets ' +
+  '— fixtures and windows occupy separate vertical zones. '
 )
 
 const runRender = (src, dst, prompt) =>
@@ -30,6 +33,8 @@ function roomPrompt(room, style) {
     `Generate a photorealistic interior render of the ${room.name} ONLY (approx ${room.approx_size_mm || 'as drawn'}). ` +
     `Camera: ${room.camera}. ` +
     (room.visible_from_camera ? `FROM THIS EXACT CAMERA the visible features are: ${room.visible_from_camera}. Place every feature on the correct side. ` : '') +
+    (room.actual_function ? `Space function (geometry-verified, may differ from the plan label): ${room.actual_function}. Design for this ACTUAL function. ` : '') +
+    (room.design_notes ? `Design decisions to follow (each has a circulation reason): ${room.design_notes}. No unjustified special elements. ` : '') +
     `Windows: ${room.windows || 'as drawn on the plan'}. Doors: ${room.doors || 'as drawn'}. ` +
     `${room.render_brief || ''} ` + HDB_TYPOLOGY +
     `Renovation style requested by the homeowner: ${style}`
