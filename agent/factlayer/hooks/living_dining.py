@@ -165,7 +165,7 @@ def audit(path: Path) -> dict:
                 1 for y in range(side_y0, side_y1) for x in range(excess_x0, excess_x1) if pix[x, y] >= 205
             )
             excess_area = (excess_x1 - excess_x0) * side_area_h
-            if excess_bright / excess_area > 0.28:
+            if excess_bright / excess_area > 0.20:
                 violations.append(
                     {
                         "element": "balcony_or_side_glazed_opening",
