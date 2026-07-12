@@ -272,8 +272,11 @@ async function handleCatalog(m, origin = 'live') {
   await say(`📋 Catalog received (${ext}). Analyzing every option against your requirements: "${requirements}"…`)
   log('CATALOG', `${file} req="${requirements}" origin=${origin}`)
   try {
-    const res = await analyzeCatalog({ filePath: path.resolve(file), requirements })
-    if (origin === 'test') res.domain = `test-${res.domain}`
+    // test-channel decisions live under a namespaced domain so playground picks
+    // never contaminate the household's real decision profile — the prefix must
+    // reach analyzeCatalog BEFORE its skill lookup, or auto mode can't trigger
+    const res = await analyzeCatalog({ filePath: path.resolve(file), requirements, domainPrefix: origin === 'test' ? 'test-' : '' })
+    log('CATALOG', `mode=${res.mode} domain=${res.domain} (${countDecisions(res.domain)} decision(s) on file)`)
     if (res.mode === 'auto') {
       recordDecision(res.domain, { mode: 'auto', requirements, pick: res.pick.name, applied_rules: res.applied_rules })
       await say(

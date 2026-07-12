@@ -11,12 +11,13 @@ const execFileP = promisify(execFile)
 const MODEL = process.env.RENOAI_MODEL || 'claude-sonnet-5'
 
 // filePath: pdf/image catalog (read via Claude's Read tool); textCatalog: inline text
-export async function analyzeCatalog({ filePath = null, textCatalog = null, requirements, domainHint = '' }) {
+export async function analyzeCatalog({ filePath = null, textCatalog = null, requirements, domainHint = '', domainPrefix = '' }) {
   // domain is resolved first so we know whether a learned profile applies
   const source = filePath ? `Read the catalog file at: ${filePath}` : `CATALOG TEXT:\n"""${textCatalog}"""`
 
   const probe = await runClaude(`${source}\nWhat product domain is this catalog? Output pure JSON: {"domain": "kebab-case-slug e.g. vinyl-flooring"}`)
-  const domain = (domainHint || parseJson(probe).domain || 'general').toLowerCase()
+  // domainPrefix namespaces test-channel decisions away from the real profile
+  const domain = domainPrefix + (domainHint || parseJson(probe).domain || 'general').toLowerCase()
 
   const skill = loadSkill(domain)
   const auto = skill && countDecisions(domain) >= AUTO_THRESHOLD
