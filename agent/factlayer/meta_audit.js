@@ -18,7 +18,7 @@ const STOPWORDS = new Set([
   'near', 'mid', 'far', 'left', 'right', 'ahead', 'only', 'must', 'visible',
   'camera', 'distance', 'bearing', 'into', 'under', 'over', 'side',
 ])
-const WEAK_COMPONENT_WORDS = new Set(['door', 'doorway', 'opening', 'frame', 'handle'])
+const WEAK_COMPONENT_WORDS = new Set(['door', 'doorway', 'opening', 'threshold', 'frame', 'handle', 'bi-fold', 'bifold'])
 
 export const isOffCamera = (component) =>
   OFF_CAMERA_RE.test(`${component?.bearing || ''} ${component?.notes || ''}`)
@@ -51,9 +51,13 @@ const wordsFor = (component) => {
 
 const mentionsComponent = (text, component) => {
   const lower = String(text || '').toLowerCase()
+  const hasWord = (word) => {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`(^|[^a-z0-9-])${escaped}([^a-z0-9-]|$)`, 'i').test(lower)
+  }
   const strongWords = wordsFor(component)
     .filter((w) => !WEAK_COMPONENT_WORDS.has(w))
-  const hasStrongWord = strongWords.some((w) => lower.includes(w))
+  const hasStrongWord = strongWords.some(hasWord)
   if (!hasStrongWord) return false
   if (isDoorLike(component)) return DOOR_RE.test(lower)
   return true
@@ -174,6 +178,7 @@ export function auditPromptContract(room, style = '', prompt = '') {
 
   for (const component of contract.outOfView) {
     const unsafe = splitText(text, 'sentence').find((piece) =>
+      !/^The view must contain EXACTLY\b/.test(piece) &&
       mentionsComponent(piece, component) && !NEGATIVE_CONTEXT_RE.test(piece))
     if (unsafe) {
       violations.push({

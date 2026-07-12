@@ -5,7 +5,7 @@ The room's geometry is part of the fact layer: the prompt pins walls, windows,
 grilles, false ceiling and camera so the render cannot invent a different room.
 ~11s / $0.04 per image.
 
-Usage: python3 render.py <input.jpg> <output.png> [style words]
+Usage: python3 render.py <input.jpg|input.png> <output.png> [style words]
 Token: $REPLICATE_API_TOKEN or ~/Documents/credentials/replicate_api_token.txt
 """
 import base64, json, os, pathlib, sys, time, urllib.request
@@ -76,9 +76,30 @@ def preprocess(src: str) -> str:
     return out
 
 
+def should_preprocess(src: str) -> bool:
+    override = os.environ.get("RENOAI_RENDER_PREPROCESS", "").lower()
+    if override in ("0", "false", "no", "off"):
+        return False
+    if override in ("1", "true", "yes", "on"):
+        return True
+    # Previous renders are PNGs; surgical edits must preserve the whole frame.
+    # The auto-crop is only for phone screenshots / floor-plan photos.
+    return pathlib.Path(src).suffix.lower() not in (".png", ".webp")
+
+
+def mime_for(src: str) -> str:
+    ext = pathlib.Path(src).suffix.lower()
+    if ext == ".png":
+        return "image/png"
+    if ext == ".webp":
+        return "image/webp"
+    return "image/jpeg"
+
+
 def render(src: str, dst: str, style: str = DEFAULT_STYLE, edit_instruction: str = "", attempts: int = 3):
-    src = preprocess(src)
-    uri = "data:image/jpeg;base64," + base64.b64encode(pathlib.Path(src).read_bytes()).decode()
+    if should_preprocess(src):
+        src = preprocess(src)
+    uri = f"data:{mime_for(src)};base64," + base64.b64encode(pathlib.Path(src).read_bytes()).decode()
     prompt = (edit_instruction + " " if edit_instruction else "") + STRUCTURE_LOCK + HDB_TYPOLOGY + style
     # nano-banana refuses doc-style inputs nondeterministically; the explicit
     # plan-mode phrasing recovers most refusals, so later attempts switch to it
