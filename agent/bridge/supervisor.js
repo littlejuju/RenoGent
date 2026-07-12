@@ -58,10 +58,13 @@ Today is ${new Date().toDateString()}. Given ONE incoming message, output pure J
  "item": string|null,
  "promised_date": "YYYY-MM-DD"|null,
  "is_slippage_admission": bool,
+ "is_work_proposal": bool,        // contractor proposes NEW renovation work / a scope change (hacking a wall, adding a recess, changing windows...)
+ "proposed_work": string|null,    // the proposed work as one concise work item, e.g. "hack a recess into the household shelter wall for a fridge"
  "needs_reply": bool,
  "draft_reply": string|null
 }
-Resolve relative dates ("Friday","tmr") against today. Draft replies: firm but polite, cite specifics, English, <=60 words.`
+Resolve relative dates ("Friday","tmr") against today. Draft replies: firm but polite, cite specifics, English, <=60 words.
+If is_work_proposal is true, do NOT draft an approval/rejection in draft_reply — compliance is checked separately; set needs_reply false unless something else needs answering.`
 
 let client
 let consoleChats = [] // approval + onboarding surfaces; [0] = primary
@@ -73,6 +76,11 @@ const AGENT_MARKS = ['🤖', '📒', '📐', '✅', '⚠️', '🔍', '🛠', '�
 const isAgentPost = (body) => AGENT_MARKS.some((m) => (body || '').startsWith(m))
 
 async function toConsole(text, mediaPath = null, chat = null) {
+  // agent and homeowner share ONE WhatsApp account — every console message the
+  // agent posts is 🤖-prefixed so the two voices can never be confused.
+  // (Approved outbound messages to the reno group are the opposite, by design:
+  // they speak AS the homeowner and carry no robot marker.)
+  if (text && !text.startsWith('🤖')) text = `🤖 ${text}`
   const target = chat || consoleChats[0]
   if (!target) return console.log(`(console offline) ${text}`)
   for (let i = 0; i < 2; i++) {
@@ -388,6 +396,26 @@ async function onRenoMessage(m, origin = 'live') {
     await toConsole(`📒 Logged ${entry.id}: "${entry.item}" — promised ${entry.promised_date || 'no date'} by ${sender}`, null, origin === 'test' ? claudeConsole() : null)
   }
   if (x.needs_reply && x.draft_reply) await propose(renoChat.id._serialized, renoChat.name, x.draft_reply, origin)
+
+  // contractor proposes new work → live compliance triage with verbatim citations
+  if (x.is_work_proposal && x.proposed_work) {
+    const con = origin === 'test' ? claudeConsole() : null
+    await toConsole(`🔍 ${sender} proposes: "${x.proposed_work}" — checking against HDB rules (citations machine-verified)…`, null, con)
+    try {
+      const { triage } = await import('../compliance/triage.js')
+      const [t] = await triage([{ id: 'LIVE-1', item: x.proposed_work }])
+      const icon = { green: '🟢', amber: '🟡', red: '🔴', escalate: '🟣' }[t.classification] || '🟣'
+      const cites = (t.citations || []).filter((c) => c.verified).map((c) => `"${c.quote}"\n  — ${c.source_url}`).join('\n')
+      await toConsole(`${icon} ${t.classification.toUpperCase()}: ${x.proposed_work}\n${t.reasoning}${cites ? `\n\nVerified citations:\n${cites}` : ''}`, null, con)
+      if (t.classification === 'red' || t.classification === 'amber') {
+        const q = (t.citations || []).find((c) => c.verified)
+        const reply = t.classification === 'red'
+          ? `Thanks for the suggestion, but we'll skip the ${x.proposed_work.replace(/\.$/, '')} — HDB rules don't allow it${q ? ` ("${q.quote.slice(0, 120)}…", hdb.gov.sg)` : ''}. Let's keep to the approved scope.`
+          : `On the ${x.proposed_work.replace(/\.$/, '')} — it's possible but conditional: ${t.reasoning.slice(0, 160)}. Let's confirm the permit/conditions before any work starts.`
+        await propose(renoChat.id._serialized, `${renoChat.name} (compliance)`, reply, origin)
+      }
+    } catch (e) { log('ERR', `live triage failed: ${e.message.slice(0, 120)}`) }
+  }
 }
 
 async function chaseSlippage() {
