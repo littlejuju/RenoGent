@@ -9,6 +9,19 @@ import * as ledger from './ledger.js'
 
 const BUDGET_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../demo/budget.json')
 
+// trade-matched acceptance checklists: when a commitment closes, the report
+// tells the homeowner HOW to verify the work before releasing payment
+const ACCEPTANCE = [
+  [/vinyl|flooring|spc|laminate/i, 'walk the full floor barefoot for lippage; tap random spots — no hollow sound; joint gaps <0.5mm; expansion gap at walls hidden by beading; no adhesive stains'],
+  [/paint/i, 'check walls against daylight at a low angle for roller marks and patchiness; edges/corners cut clean; no drips on skirting or switches; agreed colour code on the can'],
+  [/tile|tiling/i, 'tap every tile — hollow-sounding ones must be relaid; grout lines even; falls toward floor traps (pour a bottle of water and watch it drain); no lippage at corners'],
+  [/electrical|wiring|lighting|point/i, 'test every switch and socket with a phone charger; lights on/off from each gang; LB cover labelled; ask for the licensed electrician sign-off'],
+  [/plumb|tap|sink|toilet|basin/i, 'run every tap 2 minutes and check under-sink joints for weeping; flush twice; check floor trap drainage; water heater on and off'],
+  [/carpentr|cabinet|wardrobe|vanity/i, 'open every door and drawer twice — soft-close works, no rubbing; internal laminate finished; alignment gaps even; no exposed chipboard'],
+  [/aircon|trunking/i, 'run cooling 20 minutes — check trunking joints for condensation; drainage pipe gradient; remote modes all work'],
+]
+const acceptanceFor = (item) => ACCEPTANCE.find(([re]) => re.test(item))?.[1] || null
+
 const fmt = (n) => 'S$' + Number(n).toLocaleString('en-SG')
 const bar = (frac, width = 10) => {
   const filled = Math.min(width, Math.round(frac * width))
@@ -45,6 +58,17 @@ export function buildReport(today = new Date()) {
     for (const e of dueSoon) lines.push(`  ${e.id} ${e.item} — ${e.who}, due ${e.promised_date}`)
   }
   if (later.length) lines.push('', `⏳ ${later.length} more open item(s) with later/no dates.`)
+
+  // acceptance: anything closed in the last 7 days gets a how-to-verify checklist
+  const justDone = done.filter((e) => e.resolved_at && (today - new Date(e.resolved_at)) < 7 * 864e5)
+  if (justDone.length) {
+    lines.push('', `🔍 *Completed this week — verify before you pay:*`)
+    for (const e of justDone) {
+      lines.push(`  ${e.id} ${e.item} (${e.who})`)
+      const a = acceptanceFor(e.item)
+      if (a) lines.push(`    ✓ acceptance: ${a}`)
+    }
+  }
 
   // budget
   if (fs.existsSync(BUDGET_PATH)) {
