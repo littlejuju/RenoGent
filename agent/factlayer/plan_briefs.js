@@ -25,6 +25,9 @@ If it IS a floor plan, extract EVERY habitable room and output pure JSON:
      "doors": "main entrance from corridor on the west; 2800mm opening to ex-balcony on the south-west",
      "adjacent": "kitchen to the north, bedroom 2 to the east",
      "camera": "standing at the main entrance looking south toward the window wall",
+     "camera_px": {"x": 123, "y": 456},        // camera position in PIXEL coordinates of THIS image
+     "look_at_px": {"x": 200, "y": 600},       // point the camera looks at, pixel coordinates
+     "visible_from_camera": "window band on the LEFT wall, bedroom door straight AHEAD, kitchen opening on the RIGHT — list every wall feature by left/right/ahead",
      "render_brief": "one dense sentence for an image model: room shape, where the windows/doors are relative to camera, notable structure (beams, columns, service areas)"
    }
  ]
@@ -32,7 +35,9 @@ If it IS a floor plan, extract EVERY habitable room and output pure JSON:
 Rules:
 - Include living/dining, kitchen, every bedroom, bathroom(s). Skip WC smaller than 2sqm, shelters, and corridors.
 - Read window positions from the arc/line symbols on exterior walls; read dimensions from the printed mm numbers.
-- Camera always stands at a doorway or room corner, looking toward the most characteristic wall (usually the window wall).
+- Camera always stands at a doorway or room corner INSIDE the room, looking toward the most characteristic wall (usually the window wall).
+- camera_px / look_at_px are pixel coordinates on the image as provided — be precise, they will be drawn on the plan and verified.
+- visible_from_camera must be derivable from the plan geometry: for a camera at camera_px facing look_at_px, say which features fall LEFT / RIGHT / AHEAD.
 - Output pure JSON only.`
   const { stdout } = await execFileP('claude', ['-p', prompt, '--model', MODEL, '--allowedTools', 'Read'], {
     encoding: 'utf8',

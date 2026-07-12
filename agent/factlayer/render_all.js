@@ -26,10 +26,23 @@ function roomPrompt(room, style) {
   return (
     `This image is a 2D architectural floor plan of a Singapore HDB flat. ` +
     `Generate a photorealistic interior render of the ${room.name} ONLY (approx ${room.approx_size_mm || 'as drawn'}). ` +
-    `Camera: ${room.camera}. Windows: ${room.windows || 'as drawn on the plan'}. Doors: ${room.doors || 'as drawn'}. ` +
+    `Camera: ${room.camera}. ` +
+    (room.visible_from_camera ? `FROM THIS EXACT CAMERA the visible features are: ${room.visible_from_camera}. Place every feature on the correct side. ` : '') +
+    `Windows: ${room.windows || 'as drawn on the plan'}. Doors: ${room.doors || 'as drawn'}. ` +
     `${room.render_brief || ''} ` + HDB_TYPOLOGY +
     `Renovation style requested by the homeowner: ${style}`
   )
+}
+
+async function annotateCamera(planPath, room, slug) {
+  if (!room.camera_px || !room.look_at_px) return null
+  const out = planPath.replace(/\.[a-z]+$/i, `-${slug}-camera.jpg`)
+  try {
+    await execFileP('python3', [path.join(HERE, 'annotate.py'), planPath, out,
+      String(room.camera_px.x), String(room.camera_px.y),
+      String(room.look_at_px.x), String(room.look_at_px.y), room.name], { timeout: 30000 })
+    return out
+  } catch { return null }
 }
 
 // onProgress(stage, room, payload) — stages: briefs | render | audit | fix | done | error
@@ -42,12 +55,17 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
     const slug = room.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     let out = planPath.replace(/\.[a-z]+$/i, `-${slug}.png`)
     try {
+      // camera marker on the plan: shown to the human, and the audit's ground truth
+      const cameraPlan = await annotateCamera(planPath, room, slug)
+      if (cameraPlan) await onProgress('camera', room, { file: cameraPlan })
+
       await onProgress('render', room, null)
       await runRender(planPath, out, roomPrompt(room, style))
 
       await onProgress('audit', room, null)
       let audit = null
-      try { audit = await auditRender(path.resolve(planPath), path.resolve(out), style, room.name) } catch {}
+      const groundTruth = cameraPlan || planPath
+      try { audit = await auditRender(path.resolve(groundTruth), path.resolve(out), style, room.name) } catch {}
 
       if (audit && !audit.pass && audit.violations?.length) {
         await onProgress('fix', room, audit)
@@ -55,7 +73,7 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
         const fixed = out.replace('.png', '-fixed.png')
         await runRender(out, fixed, `${fixes} Change ONLY these elements; keep everything else identical. ` + HDB_TYPOLOGY)
         out = fixed
-        try { audit = await auditRender(path.resolve(planPath), path.resolve(out), style, room.name) } catch {}
+        try { audit = await auditRender(path.resolve(groundTruth), path.resolve(out), style, room.name) } catch {}
       }
       const r = { room: room.name, file: out, audit }
       results.push(r)

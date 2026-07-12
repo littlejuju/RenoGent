@@ -22,6 +22,8 @@ import { promisify } from 'util'
 import { fileURLToPath } from 'url'
 import { askClaude, parseJson } from '../llm.js'
 import { auditRender } from '../factlayer/audit.js'
+import { analyzeCatalog } from '../procurement/select.js'
+import { recordDecision, synthesizeSkill, countDecisions } from '../skills/skills.js'
 import * as ledger from '../ledger/ledger.js'
 
 const execFileP = promisify(execFile)
@@ -65,7 +67,7 @@ let consoleChats = [] // approval + onboarding surfaces; [0] = primary
 let renoChat = null // supervised renovation group
 let pendingSeq = 0
 const pending = new Map()
-const AGENT_MARKS = ['🤖', '📒', '📐', '✅', '⚠️', '🔍', '🛠', '🎨']
+const AGENT_MARKS = ['🤖', '📒', '📐', '✅', '⚠️', '🔍', '🛠', '🎨', '📋', '🧠', '📍']
 
 const isAgentPost = (body) => AGENT_MARKS.some((m) => (body || '').startsWith(m))
 
@@ -155,6 +157,7 @@ async function onboardImage(m, srcChat) {
     await say(`📐 Received. Reading the plan into per-room briefs (fact layer), then rendering every room with your brief: "${style.slice(0, 120)}"…`)
     const res = await renderAllRooms(file, style, async (stage, room, payload) => {
       if (stage === 'briefs') await say(`🔍 Analyzing the floor plan into per-room briefs (walls, windows, doors, camera) — about 1 minute…`)
+      else if (stage === 'camera') await say(`📍 ${room.name} — red dot = where you stand, arrow = where you look.\nFrom here you should see: ${room.visible_from_camera || room.camera}`, payload.file)
       else if (stage === 'render') { log('ROOM', `rendering ${room.name}`); await say(`🎨 Rendering ${room.name}…`) }
       else if (stage === 'fix')
         await say(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
@@ -228,10 +231,86 @@ async function onboardImage(m, srcChat) {
   }
 }
 
+// ---------- procurement: catalog → top-3 (Phase A) or learned auto-pick (Phase B) ----------
+const REQ_FILE = path.join(ROOT, 'demo/skills/current-requirements.txt')
+const getRequirements = () =>
+  fs.existsSync(REQ_FILE) ? fs.readFileSync(REQ_FILE, 'utf8').trim() : 'oak color vinyl flooring, durable, reasonable budget'
+let lastChoice = null // one open selection card at a time
+
+async function handleCatalog(m, origin = 'live') {
+  const media = await m.downloadMedia()
+  if (!media) return
+  const ext = (media.mimetype || 'application/pdf').split('/')[1].split(';')[0].replace('vnd.', '')
+  const inbox = path.join(ROOT, 'demo/inbox')
+  fs.mkdirSync(inbox, { recursive: true })
+  const file = path.join(inbox, `catalog-${Date.now()}.${ext}`)
+  fs.writeFileSync(file, Buffer.from(media.data, 'base64'))
+  const requirements = m.body?.trim() || getRequirements()
+  const say = (t, mp = null) => toConsole(t, mp, origin === 'test' ? claudeConsole() : consoleChats[0])
+  await say(`📋 Catalog received (${ext}). Analyzing every option against your requirements: "${requirements}"…`)
+  log('CATALOG', `${file} req="${requirements}" origin=${origin}`)
+  try {
+    const res = await analyzeCatalog({ filePath: path.resolve(file), requirements })
+    if (origin === 'test') res.domain = `test-${res.domain}`
+    if (res.mode === 'auto') {
+      recordDecision(res.domain, { mode: 'auto', requirements, pick: res.pick.name, applied_rules: res.applied_rules })
+      await say(
+        `🧠 Applied your learned decision profile (${countDecisions(res.domain)} past decision(s), domain: ${res.domain}) — selected:\n` +
+        `*${res.pick.name}* — ${res.pick.price} · ${res.pick.material} · ${res.pick.color} · ${res.pick.durability}\n` +
+        `Why: ${res.pick.rationale}\nRules applied: ${(res.applied_rules || []).join('; ')}\n` +
+        `Runner-up: ${res.runner_up?.name || 'n/a'} (${res.runner_up?.why_not || ''})`
+      )
+      if (renoChat) await propose(renoChat.id._serialized, `${renoChat.name} (selection)`, `Hi, we've decided on ${res.pick.name}. Please confirm availability, final price and lead time.`, origin)
+    } else {
+      lastChoice = { domain: res.domain, options: res.options, requirements, origin }
+      const card = res.options
+        .map((o) => `*${o.label}. ${o.name}* — ${o.price} · ${o.material} · ${o.color} · ${o.durability}\n   ✓ ${(o.pros || []).join(' / ')}\n   ✗ ${(o.cons || []).join(' / ')}`)
+        .join('\n\n')
+      await say(`📋 Top 3 for "${requirements}":\n\n${card}\n\n(rest excluded: ${res.excluded_because || 'weaker fit'})\n\nReply *A*, *B* or *C* — add a word on why, I learn your priorities from it.`)
+    }
+  } catch (e) {
+    log('ERR', `catalog analysis failed: ${e.message.slice(0, 150)}`)
+    await say(`⚠️ Catalog analysis failed — file logged, will retry on resend.`)
+  }
+}
+
+async function handleChoicePick(text, who, origin) {
+  const m = (text || '').trim().match(/^([abc])\b[\s,.:;-]*(.*)$/i)
+  if (!m || !lastChoice) return false
+  const choice = lastChoice
+  lastChoice = null
+  const picked = choice.options.find((o) => o.label.toUpperCase() === m[1].toUpperCase())
+  if (!picked) return false
+  const say = (t) => toConsole(t, null, choice.origin === 'test' ? claudeConsole() : consoleChats[0])
+  recordDecision(choice.domain, {
+    mode: 'human-pick', requirements: choice.requirements,
+    options: choice.options.map((o) => ({ label: o.label, name: o.name, price: o.price, durability: o.durability })),
+    chose: picked.name, reason: m[2] || '(none stated)', by: who,
+  })
+  await say(`✅ Noted: *${picked.name}* (picked by ${who}${m[2] ? `, reason: "${m[2]}"` : ''}). Distilling your decision profile…`)
+  try {
+    const md = await synthesizeSkill(choice.domain)
+    await say(`🧠 Decision profile updated — ${countDecisions(choice.domain)} decision(s) in *${choice.domain}*:\n${md.slice(0, 500)}…\n\nNext ${choice.domain.replace('test-', '')} catalog: I pick directly, you just confirm.`)
+  } catch (e) { log('ERR', `skill synthesis failed: ${e.message.slice(0, 120)}`) }
+  if (renoChat) await propose(renoChat.id._serialized, `${renoChat.name} (selection)`, `Hi, we'll go with ${picked.name}. Please confirm availability, final price and lead time.`, choice.origin)
+  return true
+}
+
 async function onConsoleMessage(m, srcChat) {
   if (isAgentPost(m.body)) return
   const who = m.fromMe ? client.info.pushname : m._data?.notifyName || 'family member'
-  if (m.hasMedia) return onboardImage(m, srcChat)
+  const origin = /claude/i.test(srcChat?.name || '') ? 'test' : 'live' // claude group = playground
+  if (m.hasMedia) {
+    if (m.type === 'document') return handleCatalog(m, origin)
+    return onboardImage(m, srcChat)
+  }
+  const req = m.body?.match(/^req(?:uirements)?\s*[:：]\s*(.+)/i)
+  if (req) {
+    fs.mkdirSync(path.dirname(REQ_FILE), { recursive: true })
+    fs.writeFileSync(REQ_FILE, req[1].trim())
+    return toConsole(`✅ Requirements saved: "${req[1].trim()}" — applied to the next catalog.`, null, srcChat)
+  }
+  if (await handleChoicePick(m.body, who, origin)) return
   if (await decide(m.body, who, 'wa')) return
   // anything else in the console is ignored by design (privacy: no parsing, no storage)
 }
@@ -239,7 +318,9 @@ async function onConsoleMessage(m, srcChat) {
 // ---------- reno group: supervision ----------
 async function onRenoMessage(m, origin = 'live') {
   const sender = m._data?.notifyName || m.author || 'contractor'
-  log('MSG-IN', `${sender}: ${m.body}`)
+  log('MSG-IN', `${sender}: ${m.body || `[${m.type}]`}`)
+  // proactive: contractor drops a catalog/quote document → analyze without being asked
+  if (m.hasMedia && m.type === 'document') return handleCatalog(m, origin)
   let x
   try {
     x = parseJson(await askClaude(`Message from "${sender}":\n"""${m.body}"""`, { system: EXTRACT_SYSTEM, maxTokens: 600 }))
@@ -332,6 +413,12 @@ async function handleCommand(line) {
     } else if (cmd === 'say' && playground) {
       await client.sendMessage(playground.id._serialized, rest.join(' '))
       log('CMD', `say posted to "${playground.name}": ${rest.join(' ')}`)
+    } else if (cmd === 'doc' && playground) {
+      await client.sendMessage(playground.id._serialized, MessageMedia.fromFilePath(rest[0]), { caption: rest.slice(1).join(' '), sendMediaAsDocument: true })
+      log('CMD', `doc posted to "${playground.name}": ${rest[0]}`)
+    } else if (cmd === 'pick' && lastChoice) {
+      if (lastChoice.origin !== 'test') { log('CMD', 'REFUSED: live selection card, human gate only'); return }
+      await handleChoicePick(rest.join(' '), 'claude-cmd', 'test')
     } else if (cmd === 'sim') {
       log('CMD', `simulating contractor message: ${rest.join(' ')}`)
       await onRenoMessage({ body: rest.join(' '), _data: { notifyName: 'Contractor T' } }, 'test')
