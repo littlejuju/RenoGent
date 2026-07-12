@@ -11,3 +11,5 @@ __pycache__/
 # raw PII material lives outside this repo and must never enter it
 raw/
 sanitize-patterns.txt
+demo/inbox/
+demo/ledger.json
