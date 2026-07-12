@@ -30,9 +30,59 @@ def token():
         "Documents/credentials/replicate_api_token.txt").read_text().strip()
 
 
-def render(src: str, dst: str, style: str = DEFAULT_STYLE, edit_instruction: str = ""):
+def preprocess(src: str) -> str:
+    """Auto-crop phone-screenshot chrome: keep the white document/photo region.
+    Part of the locked recipe — nano-banana refuses screenshots with UI frames."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return src
+    im = Image.open(src).convert("RGB")
+    w, h = im.size
+    px = im.convert("L").point(lambda p: 1 if p > 200 else 0).load()
+    # density scan: the document is the block of rows/cols that are mostly white;
+    # a global bbox fails because isolated white UI icons (battery, clock) extend it
+    rows = [y for y in range(h) if sum(px[x, y] for x in range(0, w, 4)) * 4 > 0.5 * w]
+    if not rows:
+        return src
+    y0, y1 = rows[0], rows[-1]
+    cols = [x for x in range(w) if sum(px[x, y] for y in range(y0, y1, 4)) * 4 > 0.5 * (y1 - y0)]
+    if not cols:
+        return src
+    x0, x1 = cols[0], cols[-1]
+    if (x1 - x0) * (y1 - y0) > 0.95 * w * h or (x1 - x0) * (y1 - y0) < 0.20 * w * h:
+        return src
+    pad = 8
+    crop = im.crop((max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + pad)))
+    out = src.rsplit(".", 1)[0] + "-cropped.jpg"
+    crop.save(out, "JPEG", quality=92)
+    print(f"preprocess: cropped {im.size} -> {crop.size}")
+    return out
+
+
+def render(src: str, dst: str, style: str = DEFAULT_STYLE, edit_instruction: str = "", attempts: int = 3):
+    src = preprocess(src)
     uri = "data:image/jpeg;base64," + base64.b64encode(pathlib.Path(src).read_bytes()).decode()
     prompt = (edit_instruction + " " if edit_instruction else "") + STRUCTURE_LOCK + style
+    # nano-banana refuses doc-style inputs nondeterministically; the explicit
+    # plan-mode phrasing recovers most refusals, so later attempts switch to it
+    plan_prompt = ("This image is a 2D architectural floor plan of an HDB flat. "
+                   "Generate a photorealistic interior render of the LIVING/DINING area "
+                   "as seen standing inside it after renovation. Respect the plan's wall, "
+                   "window and door positions exactly. ") + (edit_instruction or style)
+    last = None
+    for i in range(attempts):
+        try:
+            return _render_once(uri, dst, prompt if i < 1 else plan_prompt)
+        except (RuntimeError, urllib.error.HTTPError) as e:
+            last = e
+            wait = 12 if (isinstance(e, urllib.error.HTTPError) and e.code == 429) else 3
+            print(f"attempt {i+1}/{attempts} failed: {e} (retry in {wait}s)")
+            time.sleep(wait)
+    raise last
+
+
+def _render_once(uri: str, dst: str, prompt: str):
     req = urllib.request.Request(
         API,
         data=json.dumps({"input": {"image_input": [uri], "prompt": prompt}}).encode(),
