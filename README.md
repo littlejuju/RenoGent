@@ -21,38 +21,38 @@
 
 ```mermaid
 flowchart LR
-    RA["🤖 RenoAI — one-person renovation company<br/><b>agent executes · human holds judgment</b>"]
+    RA["🤖 RenoAI — agent executes · human decides"]
 
-    RA --> P["1 · Fact layer (perception)"]
-    P --> P1["Floor plan → mm/px calibration,<br/>structural extraction"]
-    P --> P2["Per-room briefs: walls, windows,<br/>doors, camera — machine-readable"]
-    P --> P3["L0 plan = immutable ground truth;<br/>every overlay diff-checked against it"]
+    RA --> P["1 · Fact layer"]
+    P --> P1["Plan → mm/px calibration + structure"]
+    P --> P2["Per-room briefs: walls · windows · camera"]
+    P --> P3["L0 immutable; overlays diff-checked"]
 
     RA --> D["2 · Design & render"]
-    D --> D1["Per-room structure-locked renders<br/>(HDB typology prior: no invented<br/>floor-to-ceiling windows)"]
-    D --> D2["Audit hook: generate → machine-audit<br/>→ surgical re-edit → re-audit"]
-    D --> HG1{{"👤 HUMAN: taste sign-off"}}
+    D --> D1["Structure-locked renders, HDB typology prior"]
+    D --> D2["Loop: generate → audit → surgical re-edit"]
+    D --> HG1{{"👤 taste sign-off"}}
 
-    RA --> C["3 · Compliance triage"]
-    C --> C1["Work items → 🟢/🟡/🔴 vs scraped<br/>hdb.gov.sg corpus (21 files, verbatim)"]
-    C --> C2["Citation gate: exact-match quote<br/>+ URL or the claim is rejected"]
-    C --> B1[/"⛔ BOUNDARY: decision support only.<br/>Permits, structural works, sign-offs stay with<br/>HDB-registered contractors & professional engineers"/]
+    RA --> C["3 · Compliance"]
+    C --> C1["🟢🟡🔴 triage vs hdb.gov.sg corpus"]
+    C --> C2["Citation gate: verbatim quote or rejected"]
+    C --> B1[/"⛔ decision support only — permits & structural = licensed pros"/]
 
     RA --> PR["4 · Procurement"]
-    PR --> PR1["Scope → line-item RFQs →<br/>quotes parsed into ledger"]
-    PR --> PR2["Catalog analysis → top-3<br/>with pros & cons (Phase A)"]
-    PR --> PR3["🧠 Decision-profile learning →<br/>agent picks directly (Phase B)"]
-    PR3 --> HG2{{"👤 HUMAN: confirm every pick"}}
+    PR --> PR1["RFQ → quotes → commitment ledger"]
+    PR --> PR2["Catalog → top-3 with pros & cons"]
+    PR --> PR3["🧠 learned profile → auto-pick"]
+    PR3 --> HG2{{"👤 confirm every pick"}}
 
-    RA --> S["5 · Supervision (lives in WhatsApp)"]
-    S --> S1["Commitment ledger: every promise<br/>logged with date; slippage = mechanical"]
+    RA --> S["5 · Supervision"]
+    S --> S1["Every promise logged; slippage mechanical"]
     S --> S2["Proactive chase & reply drafts"]
-    S --> HG3{{"👤 HUMAN GATE: nothing is ever sent<br/>without an explicit ok — hard invariant"}}
+    S --> HG3{{"👤 nothing sent without ok"}}
 
-    RA --> PV["Privacy & control plane"]
-    PV --> PV1["Whitelist-only: console group +<br/>reno group; all else dropped at entry"]
-    PV --> PV2["Family console group = ACL:<br/>spouse & family can feed and approve"]
-    PV --> PV3["No new app: rides the homeowner's<br/>own WhatsApp identity"]
+    RA --> PV["Privacy"]
+    PV --> PV1["Whitelist: 2 chats only, rest dropped"]
+    PV --> PV2["Family console group = ACL"]
+    PV --> PV3["No new app — rides your WhatsApp"]
 
     classDef boundary fill:#fff0f0,stroke:#cc0000,stroke-width:2px,stroke-dasharray:6 4
     classDef human fill:#fff8dc,stroke:#b8860b,stroke-width:2px
