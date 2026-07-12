@@ -33,6 +33,7 @@ function roomPrompt(room, style) {
     `Generate a photorealistic interior render of the ${room.name} ONLY (approx ${room.approx_size_mm || 'as drawn'}). ` +
     `Camera: ${room.camera}. ` +
     (room.visible_from_camera ? `FROM THIS EXACT CAMERA the visible features are: ${room.visible_from_camera}. Place every feature on the correct side. ` : '') +
+    (room.expected_components?.length ? `The view must contain EXACTLY these architectural components, nothing more, nothing less: ${JSON.stringify(room.expected_components)}. ` : '') +
     (room.actual_function ? `Space function (geometry-verified, may differ from the plan label): ${room.actual_function}. Design for this ACTUAL function. ` : '') +
     (room.design_notes ? `Design decisions to follow (each has a circulation reason): ${room.design_notes}. No unjustified special elements. ` : '') +
     `Windows: ${room.windows || 'as drawn on the plan'}. Doors: ${room.doors || 'as drawn'}. ` +
@@ -74,7 +75,7 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
       let cameraPlan = await annotateCamera(planPath, room, slug, hash)
       await onProgress('audit', room, null)
       let audit = null
-      try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name) } catch {}
+      try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components) } catch {}
 
       if (audit && !audit.pass && audit.violations?.length) {
         await onProgress('fix', room, audit)
@@ -84,7 +85,7 @@ export async function renderAllRooms(planPath, style, onProgress = () => {}) {
         out = fixed
         hash = shortHash(out)
         cameraPlan = await annotateCamera(planPath, room, slug, hash) // re-stamp for the fixed render
-        try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name) } catch {}
+        try { audit = await auditRender(path.resolve(cameraPlan || planPath), path.resolve(out), style, room.name, room.expected_components) } catch {}
       }
       const r = { room: room.name, file: out, hash, cameraPlan, audit }
       results.push(r)

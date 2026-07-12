@@ -9,12 +9,24 @@ import { parseJson } from '../llm.js'
 const execFileP = promisify(execFile)
 const MODEL = process.env.RENOAI_MODEL || 'claude-sonnet-5'
 
-export async function auditRender(originalPath, renderPath, brief = '', expectedRoom = '') {
+export async function auditRender(originalPath, renderPath, brief = '', expectedRoom = '', expectedComponents = null) {
+  const manifest = expectedComponents?.length
+    ? `EXPECTED COMPONENT MANIFEST (traced from the plan for this exact camera — this is the complete list of what the render may contain):
+${JSON.stringify(expectedComponents, null, 1)}
+
+TWO-STEP COMPONENT AUDIT (do this FIRST, before anything else):
+Step A — look ONLY at the render: list every architectural component you see (windows, doors, openings, visible adjacent rooms, wall segments, thresholds) with bearing left/center/right and near/far. Ignore furniture.
+Step B — reconcile against the manifest:
+  - manifest component MISSING from the render → violation
+  - render component NOT in the manifest → violation (invented geometry), UNLESS the renovation brief explicitly justifies it (e.g. "open concept kitchen" may open a wall THAT BORDERS THE KITCHEN per the plan — position must still match the plan)
+  - component present but wrong bearing/distance → violation
+` : ''
   const prompt = `Read and visually compare these two images:
 ORIGINAL (ground truth / fact layer): ${originalPath}
 AI RENDER after renovation: ${renderPath}
 ${brief ? `Renovation brief (changes the brief requests are ALLOWED): ${brief}` : ''}
 ${expectedRoom ? `The render is SUPPOSED to depict: ${expectedRoom}. Judge room identity against the plan's geometry for THAT room (its window walls, door positions, proportions).` : ''}
+${manifest}
 
 If the ORIGINAL is a floor plan with a RED DOT + ARROW/CONE marker: that marks the exact camera position and view direction the render MUST match. Derive what should be visible LEFT / RIGHT / AHEAD from that marker and verify the render against it.
 
@@ -28,7 +40,7 @@ Audit the RENDER against the ORIGINAL, strictest first:
 6. STRUCTURE: beams and columns visible in the original must remain in place.
 
 Output pure JSON only, no prose:
-{"room": "which room + camera position, or 'unverifiable'", "pass": bool, "violations": [{"element": "room-identity|hdb-typology|window|door|wall|ceiling|structure", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`
+{"room": "which room + camera position, or 'unverifiable'", "components_seen": ["what you saw in the render, with bearings"], "pass": bool, "violations": [{"element": "component-missing|component-invented|component-misplaced|room-identity|hdb-typology|window|door|wall|ceiling|structure", "evidence": "what is wrong, referencing position", "edit_instruction": "ONE surgical sentence for an image-edit model changing ONLY the offending element"}]}`
   const { stdout } = await execFileP('claude', ['-p', prompt, '--model', MODEL, '--allowedTools', 'Read'], {
     encoding: 'utf8',
     timeout: 240000,
