@@ -95,6 +95,8 @@ async function toConsole(text, mediaPath = null, chat = null) {
 }
 // claude playground console (for cmd-channel self-tests), falls back to primary
 const claudeConsole = () => consoleChats.find((c) => /claude/i.test(c.name)) || consoleChats[0]
+// homeowner's test console (render iteration) — NEVER the primary demo console
+const testConsole = () => consoleChats.find((c) => /test/i.test(c.name) && !/claude/i.test(c.name)) || claudeConsole()
 
 // origin 'live' → card to PRIMARY console, only a human in WhatsApp can release it
 // origin 'test' → card to the claude playground console, cmd-channel ok = dry-run
@@ -516,7 +518,7 @@ async function handleCommand(line) {
       // plan, reporting to the PRIMARY console. Only console status posts — the
       // human send-gate for outbound messages is untouched.
       if (!lastPlan) { log('CMD', 'rerun refused: no cached plan'); return }
-      const target = consoleChats[0]
+      const target = testConsole() // render iteration lives in the TEST console — the demo console stays clean
       const say2 = (t, mp = null) => toConsole(t, mp, target)
       const roomFilter = rest.join(' ').trim() || null
       log('CMD', `rerun ${roomFilter || 'whole flat'} from ${lastPlan.file}`)
