@@ -73,6 +73,22 @@
   .hashtag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.8em}
   .audit-note{margin-top:20px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--oak);border-radius:10px;padding:16px 20px;font-size:.95rem}
 
+  /* whatsapp mockups */
+  .wa-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:36px}
+  .wa{background:#efe7db;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .wa-head{background:#075e54;color:#fff;padding:10px 14px;font-size:.9rem;font-weight:700}
+  .wa-head small{display:block;font-weight:400;opacity:.85;font-size:.74rem}
+  .wa-body{padding:14px 10px;display:flex;flex-direction:column;gap:8px;font-size:.85rem;flex:1}
+  .msg{max-width:88%;padding:8px 11px;border-radius:9px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+  .in{background:#fff;align-self:flex-start;border-top-left-radius:2px}
+  .out{background:#d9fdd3;align-self:flex-end;border-top-right-radius:2px}
+  .msg .who{font-size:.72rem;font-weight:700;color:var(--oak-deep);display:block;margin-bottom:1px}
+  .msg .t{display:block;text-align:right;font-size:.66rem;color:#8a8a8a;margin-top:3px}
+  .sys{align-self:center;background:#fdf3d7;border-radius:8px;font-size:.72rem;padding:4px 12px;color:#6b5d00;text-align:center;max-width:92%}
+  .attach{display:flex;gap:8px;align-items:center;background:#f5f0e8;border-radius:7px;padding:6px 8px;margin-bottom:6px;font-size:.78rem;color:var(--ink-soft)}
+  .wa-cap{padding:10px 14px;font-size:.8rem;color:var(--ink-soft);border-top:1px solid var(--line);background:var(--card)}
+  .staged{margin-top:14px;font-size:.78rem;color:var(--ink-soft);text-align:center}
+
   /* capabilities */
   .caps{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:36px}
   .cap{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
@@ -101,7 +117,7 @@
   .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 
   @media (max-width:720px){
-    .pair,.twin{grid-template-columns:1fr}
+    .pair,.twin,.wa-row{grid-template-columns:1fr}
     section{padding:52px 0}
   }
 </style>
@@ -182,24 +198,15 @@
     stands — then machine-audited in three ordered layers.</p>
     <div class="pair">
       <figure>
-        <img src="assets/viewpoint-living.jpg" alt="Floor plan with camera position marker and view cone for the living/dining render">
-        <figcaption><b>1 · The viewpoint plan.</b> Red dot = camera, cone = what it sees, stamped with
-        the render's content hash <span class="hashtag">#2fa2fa4b</span>. The pair can't be mixed up.</figcaption>
+        <img src="assets/viewpoint-kitchen.jpg" alt="Floor plan with camera position marker and view cone for the kitchen render">
+        <figcaption><b>1 · The viewpoint plan.</b> Red dot = where the camera stands, cone = what it sees,
+        stamped with the render's content hash <span class="hashtag">#93fc293b</span>. The pair can't be mixed up.</figcaption>
       </figure>
       <figure>
-        <img src="assets/render-living.jpg" alt="AI render of the living/dining room in warm oak and ivory style">
-        <figcaption><b>2 · The constrained render.</b> Living/dining, homeowner's brief: oak vinyl,
-        warm ivory, open-concept kitchen. Hash <span class="hashtag">#2fa2fa4b</span> matches the plan above.</figcaption>
-      </figure>
-      <figure>
-        <img src="assets/viewpoint-kitchen.jpg" alt="Floor plan with camera marker for the kitchen render">
-        <figcaption><b>Kitchen viewpoint</b> <span class="hashtag">#6bb4f341</span> — camera at the service
-        passage, looking across the counter run.</figcaption>
-      </figure>
-      <figure>
-        <img src="assets/render-kitchen.jpg" alt="AI render of the HDB kitchen">
-        <figcaption><b>Kitchen render</b> <span class="hashtag">#6bb4f341</span> — HDB typology enforced:
-        window band above the counter, solid parapet, no invented balconies.</figcaption>
+        <img src="assets/render-kitchen.jpg" alt="AI render of the HDB kitchen after one audit-driven re-edit">
+        <figcaption><b>2 · The audited render.</b> Kitchen, homeowner's brief: oak vinyl, warm ivory,
+        beige counters. Hash <span class="hashtag">#93fc293b</span> matches the plan above — this is the
+        surgically re-edited pass after the audit rejected the first attempt.</figcaption>
       </figure>
     </div>
     <div class="audit-note">
@@ -209,6 +216,44 @@
       re-edited or escalated to you — never silently shipped.
     </div>
   </div>
+</section>
+
+<section id="wa" class="wrap">
+  <div class="kicker">In your WhatsApp</div>
+  <h2>What it actually looks like.</h2>
+  <p class="lede">Left: the family console, where the household briefs the agent and releases its drafts.
+  Right: the renovation group, where the agent — once approved — speaks as you.</p>
+  <div class="wa-row">
+    <div class="wa">
+      <div class="wa-head">Reno Console 🔒<small>you, Wei Lin — group membership = who can approve</small></div>
+      <div class="wa-body">
+        <div class="msg in"><span class="who">Wei Lin</span>
+          <div class="attach">📎 floor-plan.jpg</div>
+          4-room resale, budget S$48k. Oak vinyl, warm ivory walls, no grid on windows, open-concept kitchen
+          <span class="t">1:09 PM</span></div>
+        <div class="msg out">📐 Received. Reading the plan into per-room briefs (walls · windows · camera), then rendering every room against your brief…<span class="t">1:09 PM ✓✓</span></div>
+        <div class="msg out">🚦 Compliance check on your wishlist:<br>
+          🟡 open kitchen wall — allowed with an HDB permit ("A permit is required before demolishing any wall…")<br>
+          🔴 fridge recess in the store room — that's the bomb shelter; its walls can never be hacked.<br>
+          Draft reply declining the recess is ready — <b>ok 2</b> to send.<span class="t">1:11 PM ✓✓</span></div>
+        <div class="msg in"><span class="who">Wei Lin</span>ok 2<span class="t">1:14 PM</span></div>
+        <div class="msg out">✅ Sent to the renovation group as you.<span class="t">1:14 PM ✓✓</span></div>
+      </div>
+      <div class="wa-cap"><b>Either spouse approves.</b> The agent replies inside your own account — feeding it a floor plan is just sending a photo.</div>
+    </div>
+    <div class="wa">
+      <div class="wa-head">Reno Group 🛠<small>you, Contractor T, Electrician R</small></div>
+      <div class="wa-body">
+        <div class="msg in"><span class="who">Contractor T</span>boss sorry, tiler MC today, flooring push to next week can 🙏<span class="t">9:41 AM</span></div>
+        <div class="sys">RenoAI logs commitment C001 · detects the slip · drafts the chase — nothing is sent until a human taps ok</div>
+        <div class="msg out">Hi T, we'd agreed flooring wraps this Friday. MC understood — but the painter is booked right behind the tiler. Can you confirm Monday as the recovery date?<span class="t">drafted by RenoAI · released with ok 1 · 9:47 AM ✓✓</span></div>
+        <div class="msg in"><span class="who">Contractor T</span>ok ok monday confirm 👍<span class="t">9:52 AM</span></div>
+        <div class="sys">New commitment C004 — flooring · Monday — logged to the ledger automatically</div>
+      </div>
+      <div class="wa-cap"><b>Contractors see a well-organized homeowner, never a bot.</b> Every promise is on the ledger; every chase is drafted, human-released, and sent as you.</div>
+    </div>
+  </div>
+  <p class="staged">Staged recreation (names invented) — the message flow, approval gate and ledger behaviour match the live system exactly.</p>
 </section>
 
 <section id="caps" class="wrap">
