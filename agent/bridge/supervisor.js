@@ -31,6 +31,15 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const AUTH_PATH = process.env.WWEBJS_AUTH || path.join(ROOT, '../bridge-test/wwebjs_auth')
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
+// singleton lock — two clients on one WhatsApp session detach each other's frames
+const LOCK = path.join(ROOT, 'demo/supervisor.pid')
+if (fs.existsSync(LOCK)) {
+  const old = Number(fs.readFileSync(LOCK, 'utf8'))
+  try { process.kill(old, 0); console.error(`another supervisor is running (pid ${old}) — exiting`); process.exit(1) } catch {}
+}
+fs.writeFileSync(LOCK, String(process.pid))
+process.on('exit', () => { try { if (Number(fs.readFileSync(LOCK, 'utf8')) === process.pid) fs.unlinkSync(LOCK) } catch {} })
+
 const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'demo/config.json'), 'utf8'))
 const RENO_GROUP = process.env.RENOAI_GROUP || cfg.reno_group
 const CONSOLE_GROUP = process.env.RENOAI_CONSOLE || cfg.console_group
@@ -54,7 +63,7 @@ let consoleChat = null // approval + onboarding surface
 let renoChat = null // supervised renovation group
 let pendingSeq = 0
 const pending = new Map()
-const AGENT_MARKS = ['🤖', '📒', '📐', '✅', '⚠️', '🔍', '🛠']
+const AGENT_MARKS = ['🤖', '📒', '📐', '✅', '⚠️', '🔍', '🛠', '🎨']
 
 const isAgentPost = (body) => AGENT_MARKS.some((m) => (body || '').startsWith(m))
 
@@ -105,11 +114,47 @@ async function onboardImage(m) {
   const file = path.join(inbox, `plan-${Date.now()}.${ext}`)
   fs.writeFileSync(file, Buffer.from(media.data, 'base64'))
   log('ONBOARD', `image received -> ${file} (caption: ${m.body || 'none'})`)
-  await toConsole(`📐 Received. Rendering with geometry pinned to your original, then auditing against the fact layer…`)
+
+  // visible liveness: keep the WhatsApp "typing…" indicator on while working
+  const typer = setInterval(() => { try { consoleChat?.sendStateTyping() } catch {} }, 20000)
+  try { consoleChat?.sendStateTyping() } catch {}
+  const stopTyping = () => { clearInterval(typer); try { consoleChat?.clearState() } catch {} }
 
   const runRender = (src, dst, promptText) =>
-    execFileP('python3', [path.join(ROOT, 'agent/factlayer/render.py'), src, dst, promptText], { timeout: 120000 })
+    execFileP('python3', [path.join(ROOT, 'agent/factlayer/render.py'), src, dst, promptText], { timeout: 240000 })
 
+  // ---- whole-flat path: floor plan → per-room briefs → constrained render+audit per room ----
+  try {
+    const { renderAllRooms } = await import('../factlayer/render_all.js')
+    const style = m.body?.trim() || 'warm japandi style, matte oak flooring, warm cove lighting, linen curtains'
+    await toConsole(`📐 Received. Reading the plan into per-room briefs (fact layer), then rendering every room with your brief: "${style.slice(0, 120)}"…`)
+    const res = await renderAllRooms(file, style, async (stage, room, payload) => {
+      if (stage === 'briefs') await toConsole(`🔍 Analyzing the floor plan into per-room briefs (walls, windows, doors, camera) — about 1 minute…`)
+      else if (stage === 'render') { log('ROOM', `rendering ${room.name}`); await toConsole(`🎨 Rendering ${room.name}…`) }
+      else if (stage === 'fix')
+        await toConsole(`🛠 ${room.name}: audit caught ${payload.violations.length} violation(s):\n${payload.violations.map((v) => `• [${v.element}] ${v.evidence}`).join('\n')}\nApplying surgical re-edit…`)
+      else if (stage === 'done')
+        await toConsole(`📐 ${room.name} — audit ${payload.audit?.pass ? '✅ PASSED (geometry matches plan)' : payload.audit ? `⚠️ ${(payload.audit.violations || []).length} issue(s) remain, escalated` : 'skipped'}`, payload.file)
+      else if (stage === 'error') await toConsole(`⚠️ ${room.name} render failed: ${String(payload).slice(0, 120)}`)
+    })
+    if (res.is_floor_plan) {
+      const ok = res.results.filter((r) => !r.error).length
+      await toConsole(`✅ Whole-flat render complete: ${ok}/${res.results.length} rooms delivered.`)
+      const triagePath = path.join(ROOT, 'demo/triage-output.json')
+      if (fs.existsSync(triagePath)) {
+        const t = JSON.parse(fs.readFileSync(triagePath, 'utf8'))
+        const icon = { green: '🟢', amber: '🟡', red: '🔴', escalate: '🟣' }
+        await toConsole(`⚠️ Compliance triage for your requested works (citations verbatim-verified against hdb.gov.sg):\n${t.map((r) => `${icon[r.classification]} ${r.id}: ${r.reasoning.split('.')[0]}.`).join('\n')}`)
+      }
+      stopTyping()
+      return
+    }
+    // not a plan → fall through to single-photo flow below
+  } catch (err) {
+    log('ERR', `whole-flat path failed, falling back to single render: ${err.message.slice(0, 150)}`)
+  }
+
+  await toConsole(`📐 Treating this as a room photo. Rendering with geometry pinned to your original, then auditing…`)
   try {
     // 1. structure-locked render (locked recipe, ~11s)
     let out = file.replace(/\.[a-z]+$/, '-render.png')
@@ -153,6 +198,8 @@ async function onboardImage(m) {
   } catch (err) {
     log('ERR', `onboard pipeline failed: ${err.message}`)
     await toConsole(`⚠️ Pipeline error — image logged to fact layer, retry with another photo.`)
+  } finally {
+    stopTyping()
   }
 }
 
@@ -200,6 +247,12 @@ client = new Client({
 
 client.on('qr', async (qr) => { await QRCode.toFile('./qr.png', qr, { width: 400 }); log('QR', 'scan ./qr.png') })
 
+client.on('disconnected', async (reason) => {
+  log('DISC', `disconnected: ${reason} — reinitializing in 10s`)
+  await new Promise((r) => setTimeout(r, 10000))
+  try { await client.initialize() } catch (e) { log('ERR', `reinit failed: ${e.message.slice(0, 120)}`) }
+})
+
 client.on('ready', async () => {
   log('READY', `riding ${client.info.pushname} (${client.info.wid.user})`)
   const chats = await client.getChats()
@@ -233,8 +286,49 @@ client.on('ready', async () => {
 process.on('unhandledRejection', (e) => log('ERR', `unhandled: ${String(e?.message || e).slice(0, 200)}`))
 process.on('uncaughtException', (e) => log('ERR', `uncaught: ${String(e?.message || e).slice(0, 200)}`))
 
+// ---------- local test-command channel ----------
+// Commands via stdin OR appended to demo/cmd.txt (for driving a detached process):
+//   img <path> [caption]  -> post an image into the console group as the homeowner
+//   say <text>            -> post text into the console group as the homeowner
+//   sim <text>            -> simulate an incoming contractor message (no WhatsApp
+//                            message is sent anywhere; extraction+ledger+draft only)
+//   ok N / no N           -> decide directly
+async function handleCommand(line) {
+  const t = line.trim()
+  if (!t) return
+  const [cmd, ...rest] = t.split(' ')
+  try {
+    if (cmd === 'img' && consoleChat) {
+      await client.sendMessage(consoleChat.id._serialized, MessageMedia.fromFilePath(rest[0]), { caption: rest.slice(1).join(' ') })
+      log('CMD', `img posted: ${rest[0]}`)
+    } else if (cmd === 'say' && consoleChat) {
+      await client.sendMessage(consoleChat.id._serialized, rest.join(' '))
+      log('CMD', `say posted: ${rest.join(' ')}`)
+    } else if (cmd === 'sim') {
+      log('CMD', `simulating contractor message: ${rest.join(' ')}`)
+      await onRenoMessage({ body: rest.join(' '), _data: { notifyName: 'Contractor T' } })
+    } else {
+      await decide(t)
+    }
+  } catch (e) { log('ERR', `cmd failed: ${e.message.slice(0, 150)}`) }
+}
+
+const CMD_FILE = path.join(ROOT, 'demo/cmd.txt')
+let cmdOffset = fs.existsSync(CMD_FILE) ? fs.statSync(CMD_FILE).size : 0
+setInterval(() => {
+  if (!fs.existsSync(CMD_FILE)) return
+  const size = fs.statSync(CMD_FILE).size
+  if (size <= cmdOffset) { cmdOffset = size; return }
+  const fd = fs.openSync(CMD_FILE, 'r')
+  const buf = Buffer.alloc(size - cmdOffset)
+  fs.readSync(fd, buf, 0, buf.length, cmdOffset)
+  fs.closeSync(fd)
+  cmdOffset = size
+  buf.toString('utf8').split('\n').forEach((l) => l.trim() && handleCommand(l))
+}, 2000)
+
 const rl = readline.createInterface({ input: process.stdin })
-rl.on('line', async (line) => { await decide(line) })
+rl.on('line', handleCommand)
 
 log('INIT', `auth=${AUTH_PATH} console="${CONSOLE_GROUP}" reno="${RENO_GROUP}"`)
 client.initialize()
