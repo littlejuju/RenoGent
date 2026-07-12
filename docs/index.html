@@ -73,14 +73,6 @@
   .pair figcaption b{color:var(--ink)}
   .hashtag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.8em}
   .audit-note{margin-top:20px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--oak);border-radius:10px;padding:16px 20px;font-size:.95rem}
-  .unit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px}
-  .unit-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .unit-card img{width:100%;display:block;aspect-ratio:4/5;object-fit:cover;background:#eee}
-  .unit-card figcaption{padding:12px 14px;font-size:.84rem;color:var(--ink-soft)}
-  .unit-card figcaption b{display:block;color:var(--ink);margin-bottom:3px}
-  .badge{display:inline-block;margin-top:8px;border-radius:999px;padding:3px 9px;font-size:.72rem;font-weight:700}
-  .badge.pass{background:#e6f3eb;color:var(--green)}
-  .badge.asset{background:#fff7df;color:#795600}
 
   /* whatsapp mockups */
   .wa-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:36px}
@@ -193,7 +185,7 @@
     <div class="step"><span class="n">3</span>
       <h3>Feed it your plans</h3>
       <p>Drop your floor plan and a one-line brief. Get back an audited render proof shot, structural
-      fact layer, and <span class="traffic"><span class="g">green</span>/<span class="a">amber</span>/<span class="r">red</span></span> compliance triage with verbatim HDB citations. The current package covers kitchen, living/dining, bedroom, bath and study; kitchen is the strict-audited pass, while other rooms are labelled selected or alternate assets.</p>
+      fact layer, and <span class="traffic"><span class="g">green</span>/<span class="a">amber</span>/<span class="r">red</span></span> compliance triage with verbatim HDB citations. Today’s passed proof shot is the kitchen; other rooms are surfaced as audit escalations when they do not pass.</p>
     </div>
     <div class="step"><span class="n">4</span>
       <h3>Supervise on autopilot</h3>
@@ -206,10 +198,10 @@
 <section id="proof" class="proof-bg">
   <div class="wrap">
     <div class="kicker">Renders you can verify</div>
-  <h2>One strict pass, plus a whole-unit render package.</h2>
+  <h2>The kitchen render is audited against your floor plan.</h2>
   <p class="lede">AI renders love to invent windows and stretch rooms. RenoGent doesn't get to:
     the passed kitchen render is hash-paired to a stamped copy of your plan showing exactly where
-    the camera stands, and the same viewpoint-proof workflow now covers the rest of this non-standard HDB unit.</p>
+    the camera stands — then machine-audited in three ordered layers.</p>
     <div class="pair">
       <figure>
         <img src="assets/viewpoint-kitchen.jpg" alt="Floor plan with camera position marker and view cone for the kitchen render">
@@ -228,28 +220,6 @@
       reconciled against a manifest traced from your plan; ② depth &amp; scale: room proportions checked
       against the plan's printed dimensions; ③ style &amp; HDB typology. Fail layers 1–2 and the render is
       re-edited or escalated to you — never silently shipped.
-    </div>
-    <div class="unit-grid" aria-label="Whole-unit render package">
-      <figure class="unit-card">
-        <img src="assets/render-living-dining.png" alt="Selected render asset for the HDB living and dining room">
-        <figcaption><b>Living / Dining</b> Open common area, dining table, sofa zone and long HDB window wall.
-        <a class="badge asset" href="assets/viewpoint-living-dining.jpg">selected asset · viewpoint proof</a></figcaption>
-      </figure>
-      <figure class="unit-card">
-        <img src="assets/render-bedroom-1.png" alt="Selected render asset for bedroom 1 with HDB window wall and curtains">
-        <figcaption><b>Bedroom 1</b> Structure-preserving room shell after surgical window-grid correction.
-        <a class="badge asset" href="assets/viewpoint-bedroom-1.jpg">selected asset · viewpoint proof</a></figcaption>
-      </figure>
-      <figure class="unit-card">
-        <img src="assets/render-bath.png" alt="Selected render asset for the bathroom wet area">
-        <figcaption><b>Bath</b> Narrow wet-area render with shower tray, wall tile, vanity and mirror.
-        <a class="badge asset" href="assets/viewpoint-bath.jpg">selected asset · viewpoint proof</a></figcaption>
-      </figure>
-      <figure class="unit-card">
-        <img src="assets/render-study.png" alt="Alternate-view render asset for the study room">
-        <figcaption><b>Study</b> Useful alternate-view asset: good design direction, registered separately from strict pass.
-        <a class="badge asset" href="assets/viewpoint-study.jpg">alternate asset · viewpoint proof</a></figcaption>
-      </figure>
     </div>
   </div>
 </section>

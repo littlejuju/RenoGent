@@ -36,7 +36,7 @@ Three things worth your attention:
 
 1. **Link once.** Scan a QR from your phone (WhatsApp → Linked Devices) — the exact same gesture as WhatsApp Web. That's the entire installation.
 2. **Create your console.** Make a WhatsApp group for your household (you + spouse/family) — e.g. "RenoGent Console". Group membership is the permission system: anyone in it can feed the agent and approve its actions.
-3. **Feed it.** Drop your floor plan or room photo into the console with a one-line brief ("hack the study wall, japandi style, S$50k"). The agent replies in the console with the structural fact layer, green/amber/red compliance triage (citations verbatim from hdb.gov.sg) and audited render attempts. The current whole-unit package covers kitchen, living/dining, bedroom, bath and study; kitchen is the strict-audited pass, while the other rooms are labelled selected or alternate assets with viewpoint proofs.
+3. **Feed it.** Drop your floor plan or room photo into the console with a one-line brief ("hack the study wall, japandi style, S$50k"). The agent replies in the console with the structural fact layer, green/amber/red compliance triage (citations verbatim from hdb.gov.sg) and audited render attempts. The current demo has one fully passed floor-plan-to-render path (kitchen); other rooms are useful precisely because the audit catches unresolved structure/style issues instead of silently shipping them.
 4. **Supervise.** The agent watches your renovation group with contractors. Every promise ("tiling done by Friday") is logged to the commitment ledger; overdue promises trigger drafted chase messages delivered to your console — reply `ok 1` to send as yourself, `no 1` to discard. Either spouse can approve.
 5. **Stay on top without asking.** Reply `report` (or wait for Monday 9am) for progress, blockers, budget-vs-cap — and trade-matched acceptance checklists for freshly completed work, so you know how to inspect before you pay. `redo BEDROOM 1` re-renders a single room; `budget 48000` sets your cap.
 
@@ -114,20 +114,6 @@ counted as primary passes. See [docs/meta-audit.md](docs/meta-audit.md).
 | ![Viewpoint plan: red dot camera marker and view cone stamped with the render hash](docs/assets/viewpoint-kitchen.jpg) | ![Kitchen render, hash-matched to the viewpoint plan](docs/assets/render-kitchen.jpg) |
 | Red dot = camera, cone = what it sees, stamped `#93fc293b` | Same hash `#93fc293b` — the pair can't be mixed up |
 
-### Whole-unit package from the same non-standard HDB plan
-
-These are intentionally labelled assets, not all claimed as strict passes: the kitchen proves the full audit loop, while the rest show the unit-scale package and keep their viewpoint-proof trail.
-
-| Living / Dining | Bedroom 1 |
-|---|---|
-| ![Selected living and dining render asset](docs/assets/render-living-dining.png) | ![Selected bedroom 1 render asset](docs/assets/render-bedroom-1.png) |
-| selected asset + [viewpoint proof](docs/assets/viewpoint-living-dining.jpg) | selected asset + [viewpoint proof](docs/assets/viewpoint-bedroom-1.jpg) |
-
-| Bath | Study |
-|---|---|
-| ![Selected bath render asset](docs/assets/render-bath.png) | ![Alternate-view study render asset](docs/assets/render-study.png) |
-| selected asset + [viewpoint proof](docs/assets/viewpoint-bath.jpg) | alternate asset + [viewpoint proof](docs/assets/viewpoint-study.jpg) |
-
 ## The agentic chain
 
 1. **Floor plan → immutable fact layer.** mm/px calibration from printed dimension lines, per-room structural briefs (walls, windows, camera, fixtures, expected-component manifests), persisted as the single reviewable ground truth.
@@ -161,4 +147,4 @@ We do not replace licensed contractors or professional engineers; all structural
 
 ## What's real vs. staged (honest disclosure)
 
-Real and working today: the WhatsApp bridge as a live test bench; one strict-audited floor-plan-to-render pass for the kitchen with a hash-paired viewpoint plan; a whole-unit selected asset package for living/dining, bedroom, bath and study; metric-grounded floor-plan extraction; compliance triage with all-verbatim citations; decision-profile learning (top-3 → pick → auto-pick); commitment ledger + chase drafts behind the human approval gate; weekly report with budget + acceptance checklists. Hardcoded or staged for the demo: payment, auth, multi-user persistence, and broad production reliability beyond this single-tenant test bench. Renders that fail strict audit are delivered honestly as selected, alternate, NOT passed or style-escalated — never silently shipped as primary passes.
+Real and working today: the WhatsApp bridge as a live test bench; one audited floor-plan-to-render pass for the kitchen with a hash-paired viewpoint plan; the same audit loop catching unresolved issues on other rooms; metric-grounded floor-plan extraction; compliance triage with all-verbatim citations; decision-profile learning (top-3 → pick → auto-pick); commitment ledger + chase drafts behind the human approval gate; weekly report with budget + acceptance checklists. Hardcoded or staged for the demo: payment, auth, multi-user persistence, and broad production reliability beyond this single-tenant test bench. Renders that fail audit are delivered honestly as NOT passed or style-escalated — you will see escalations in the demo, by design.
