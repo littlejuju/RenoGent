@@ -27,7 +27,7 @@ Three things worth your attention:
 - **Track:** OPC / Super Individuals (primary) — also fits Autonomous Agents
 - **What:** An agentic service that gives Singapore HDB homeowners ID-level design, compliance and supervision — at contractor-direct prices. The agent does the coordination work an interior design firm charges 30–50% markup for; the human keeps taste sign-off and final approval.
 - **Why us:** Built on a **real 9-month renovation dispute** — 2,171 WhatsApp messages between a homeowner and an ID firm (peak crisis month: 715 messages). Every demo step runs on this real data, not synthetic fixtures.
-- **Where it lives:** Not another app. Renovation coordination in Singapore happens in WhatsApp — RenoGent drafts inside your private homeowner console, and nothing is sent until a human approves. Human-approved delegation, not automation without oversight.
+- **Where it lives:** Not another app. Renovation coordination in Singapore happens in WhatsApp — RenoGent drafts inside your private homeowner console, and nothing is sent until a human approves. But supervision is the training set, not the ceiling: every approval teaches the agent how you decide, your picks distill into a decision profile, and domains where the profile is proven graduate to autopilot (already live for material picks) — the agent decides, you keep veto. Over months it becomes a coordinator you've personally trained to decide like you.
 - **Stack:** Claude Code + Claude API (vision + tool use) for floor-plan reading, compliance triage and message drafting; Replicate (nano-banana) for structure-locked renders; whatsapp-web.js for a live WhatsApp supervision bridge.
 
 ## How you use it (no new app)
@@ -67,7 +67,7 @@ flowchart LR
     PR --> PR1["RFQ → quotes → commitment ledger"]
     PR --> PR2["Catalog → top-3 with pros & cons"]
     PR --> PR3["🧠 learned profile → auto-pick"]
-    PR3 --> HG2{{"👤 confirm every pick"}}
+    PR3 --> HG2{{"👤 confirm → veto, as trust graduates"}}
 
     RA --> S["5 · Supervision"]
     S --> S1["Every promise logged; slippage mechanical"]
@@ -89,7 +89,7 @@ flowchart LR
     class RA root
 ```
 
-**The one rule that never bends:** the agent prepares, verifies and drafts; the human decides. Every irreversible step — message send-off, product pick, design sign-off, and everything requiring a licence — passes through a human or a licensed professional.
+**The trust model: autonomy is earned, per domain.** Day one, the agent prepares, verifies and drafts; the human decides everything. Each decision it watches you make becomes training data — approved picks distill into an explicit decision profile (priority rules with evidence, reviewable in `agent/skills/`). Once a domain's profile is proven, that domain graduates: the agent decides, the human holds a revocable veto instead of a pre-approval. Material selection is mid-graduation in the live build: the agent already auto-picks under your learned profile and states its reasoning; you confirm with one word. The floor that never moves: outbound messages and everything requiring a licence stay behind a human or a licensed professional.
 
 ## Verified renders, not AI fantasy
 
@@ -112,7 +112,7 @@ violations listed — never silently shipped.
 1. **Floor plan → immutable fact layer.** mm/px calibration from printed dimension lines, per-room structural briefs (walls, windows, camera, fixtures, expected-component manifests), persisted as the single reviewable ground truth.
 2. **Constrained render + 3-layer audit.** Generate → audit against the fact layer → surgical re-edit or fresh base → honest escalation (see above).
 3. **Compliance triage.** Work items classified green/amber/red against HDB rules; a citation-verification gate rejects any rule citation that does not verbatim-match our scraped hdb.gov.sg corpus (`data/hdb_corpus/`).
-4. **Procurement that learns you.** Catalog → top-3 with pros/cons; your picks distill into a decision profile (priority rules with evidence); later catalogs are auto-picked under that profile, human confirm required. Approved scope compiles into line-item RFQs with a shortlist of HDB DRC-registered contractors matched to the works (sample dataset in the demo).
+4. **Procurement that learns you.** Catalog → top-3 with pros/cons; your picks distill into a decision profile (priority rules with evidence); later catalogs are auto-picked under that profile with one-word confirm — the graduation path from "agent proposes" to "agent decides, you veto". Approved scope compiles into line-item RFQs with a shortlist of HDB DRC-registered contractors matched to the works (sample dataset in the demo).
 5. **WhatsApp supervision + PM.** Live bridge logs contractor promises into the ledger, chases slippage, drafts escalations — a human approves every outgoing message. Weekly report: progress, blockers, budget vs cap, and acceptance checklists for completed work.
 
 ## Repo layout
