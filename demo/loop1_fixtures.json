@@ -1,0 +1,23 @@
+{
+  "_comment": "Loop 1 练习用的假 vision 提案（stub generator 的弹药）。比例尺 16mm/px。故意埋了 4 个错：OCR 误读(depth)、缺 formula(window-clear)、门洞不在墙上(door)、印刷污损永远读错(ceiling-drop → 应最终降级 review_required)。",
+  "round1": [
+    {"id": "calibration.x.a", "kind": "calibration", "axis": "x", "p1": [100, 50], "p2": [400, 50], "printed_mm": 4800, "source": "printed", "source_label": "4800"},
+    {"id": "calibration.x.b", "kind": "calibration", "axis": "x", "p1": [400, 50], "p2": [580, 50], "printed_mm": 2880, "source": "printed", "source_label": "2880"},
+    {"id": "calibration.y.a", "kind": "calibration", "axis": "y", "p1": [90, 100], "p2": [90, 350], "printed_mm": 4000, "source": "printed", "source_label": "4000"},
+    {"id": "calibration.y.b", "kind": "calibration", "axis": "y", "p1": [90, 350], "p2": [90, 500], "printed_mm": 2400, "source": "printed", "source_label": "2400"},
+    {"id": "dim.top.total", "kind": "dim", "p1": [100, 50], "p2": [580, 50], "printed_mm": 7680, "source": "printed", "source_label": "7680"},
+    {"id": "wall.bedroom-2.south", "kind": "wall", "p1": [600, 500], "p2": [850, 500], "printed_mm": 4000, "source": "printed", "source_label": "4000"},
+    {"id": "dim.bedroom-2.depth", "kind": "dim", "p1": [850, 300], "p2": [850, 500], "printed_mm": 2900, "source": "printed", "source_label": "2900(误读)"},
+    {"id": "dim.bedroom-2.window-clear", "kind": "dim", "p1": [620, 300], "p2": [760, 300], "source": "derived_from_scale"},
+    {"id": "opening.bedroom-2.door", "kind": "opening", "p1": [700, 495], "p2": [760, 495], "source": "derived_from_scale", "formula": "px_len * x_mm_per_px", "host_wall_id": "wall.bedroom-2.south"},
+    {"id": "dim.bedroom-2.ceiling-drop", "kind": "dim", "p1": [600, 300], "p2": [600, 380], "printed_mm": 1550, "source": "printed", "source_label": "1550(污损)"}
+  ],
+  "corrections": {
+    "dim.bedroom-2.depth": {"id": "dim.bedroom-2.depth", "kind": "dim", "p1": [850, 300], "p2": [850, 500], "printed_mm": 3200, "source": "printed", "source_label": "3200"},
+    "dim.bedroom-2.window-clear": {"id": "dim.bedroom-2.window-clear", "kind": "dim", "p1": [620, 300], "p2": [760, 300], "source": "derived_from_scale", "formula": "px_len * x_mm_per_px"},
+    "opening.bedroom-2.door": {"id": "opening.bedroom-2.door", "kind": "opening", "p1": [700, 500], "p2": [760, 500], "source": "derived_from_scale", "formula": "px_len * x_mm_per_px", "host_wall_id": "wall.bedroom-2.south"}
+  },
+  "closure_groups": [
+    {"name": "top-width-closure", "parts": ["calibration.x.a", "calibration.x.b"], "total_id": "dim.top.total"}
+  ]
+}
