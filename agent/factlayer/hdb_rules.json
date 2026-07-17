@@ -1,0 +1,81 @@
+{
+  "_comment": "HDB norm rulebook (WP2 of plans/designer-v2.md). Rules are DATA: thresholds, claims and confidence live here; the matching logic per `kind` lives in infer.py. Every emitted inference is stage-1 conjecture (status=proposed) — the user can confirm or overturn any of them, and the latest version is the binding hook.",
+  "version": 1,
+  "rules": [
+    {
+      "id": "window-parapet-default",
+      "kind": "window_type",
+      "scope": "room",
+      "params": { "sill_mm": 1000, "kitchen_sill_mm": 1150 },
+      "claim_template": "Windows in {room} are standard HDB window bands over a solid parapet (sill ≈{sill_m}m; kitchen sills sit above the counter at ≈1.1–1.2m). NOT full-height glazing — floor-to-ceiling windows exist only in specific newer BTO/DBSS batches and must be proven by a site photo before any render may use them.",
+      "basis": "hdb_norm:window_parapet — standard HDB window typology; full-height glazing is the exception, never the default",
+      "confidence": "high"
+    },
+    {
+      "id": "enclosed-room-by-homeowner",
+      "kind": "room_function",
+      "scope": "room",
+      "params": { "interior_room_name_hints": ["study", "office", "den"], "min_enclosed_sides": 2 },
+      "claim_template": "{room} is an ENCLOSED INTERIOR ROOM: the homeowner designates it a habitable room and it has measured interior-clear edges on {sides} sides. Any porch/balcony/patio reading of the plan label is overridden — render as interior space with its own window wall.",
+      "basis": "hdb_norm:enclosed_conversion + homeowner designation — an enclosed space the homeowner names as a room is interior, regardless of how the plan draws or labels it (classic HDB mislabel trap)",
+      "confidence": "high"
+    },
+    {
+      "id": "service-passage-vs-balcony",
+      "kind": "room_function",
+      "scope": "room",
+      "params": { "max_passage_width_mm": 1500, "service_name_hints": ["service", "utility", "yard"] },
+      "claim_template": "The balcony-adjacent strip in {room} is a SERVICE PASSAGE, not a leisure balcony: it is a narrow pass-through connected to the kitchen/service riser. Do not render it as an outdoor leisure space.",
+      "basis": "hdb_norm:service_balcony — a narrow (<1.5m) pass-through strip beside the kitchen leading to W.C./service areas is circulation, not amenity space",
+      "confidence": "high"
+    },
+    {
+      "id": "beam-span-candidate",
+      "kind": "beam",
+      "scope": "room",
+      "params": { "span_threshold_mm": 4000 },
+      "claim_template": "{room} spans {span_mm}mm ({span_name}) — expect a structural beam across the shorter direction near midspan or along the room boundary. HDB floor plans do NOT draw beams; this is a candidate only. Renders must not commit to a beam-free flat ceiling here until the homeowner confirms with a site photo.",
+      "basis": "hdb_norm:beam_span — RC beams typically occur over partition lines, along external walls, and across spans exceeding ~4m; never derivable from the sales floor plan alone",
+      "confidence": "medium",
+      "needs_user_confirmation": true
+    },
+    {
+      "id": "wet-area-riser",
+      "kind": "pipes",
+      "scope": "room",
+      "params": { "wet_name_hints": ["bath", "w.c", "wc", "kitchen", "toilet"] },
+      "claim_template": "{room} is a wet area served by the block's service riser: soil stack and water supply run along the riser wall shared with the adjacent wet spaces. Relocating the WC/floor trap is high-cost (floor screed + pipe gradient + HDB permit) — layouts that move sanitary fixtures off the riser wall must be flagged, not silently rendered.",
+      "basis": "hdb_norm:service_riser — sanitary stacks cluster bath/WC/kitchen around a shared riser; fixture relocation is constrained by gradient and permit",
+      "confidence": "high"
+    },
+    {
+      "id": "wall-construction-default",
+      "kind": "wall_construction",
+      "scope": "unit",
+      "params": {},
+      "claim_template": "Unit boundary walls (party walls, external/facade walls) are structural reinforced concrete — NOT demolishable. Interior partition walls are typically non-load-bearing (hollow block / precast lightweight panel) and MAY be demolishable with an HDB permit, pending per-wall thickness measurement (WP1 wall facts will refine this to per-wall verdicts). Any open-concept proposal must name which wall it removes and that wall's verdict.",
+      "basis": "hdb_norm:wall_construction — structural vs partition distinction; hacking structural walls is prohibited, partitions need HDB approval",
+      "confidence": "medium"
+    },
+    {
+      "id": "ceiling-slab-default",
+      "kind": "ceiling",
+      "scope": "unit",
+      "params": { "height_mm": 2600 },
+      "claim_template": "Flat RC slab ceiling at ≈2.6m throughout. False ceilings only as perimeter L-box/cove unless the homeowner asks otherwise; full false ceilings sacrifice height and must clear any beam candidates first.",
+      "basis": "hdb_norm:ceiling_height — standard HDB floor-to-slab",
+      "confidence": "high"
+    },
+    {
+      "id": "boundary-beam-external-wall",
+      "kind": "beam",
+      "scope": "unit",
+      "requires_fact_kinds": ["wall"],
+      "params": {},
+      "claim_template": "Beams run along external walls and unit boundary lines: {walls}.",
+      "basis": "hdb_norm:beam_span — perimeter beams along facade and party-wall lines",
+      "confidence": "medium",
+      "needs_user_confirmation": true
+    }
+  ]
+}
