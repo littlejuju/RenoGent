@@ -96,7 +96,28 @@ def mime_for(src: str) -> str:
     return "image/jpeg"
 
 
+def normalize_orientation(src: str) -> str:
+    """Bake EXIF rotation into pixels. Phone photos carry orientation only in
+    EXIF; the image model ignores it and edits the un-rotated pixels, returning
+    sideways output. Discovered via a rotated site-photo edit (2026-07-18)."""
+    try:
+        from PIL import Image, ImageOps
+    except ImportError:
+        return src
+    if pathlib.Path(src).suffix.lower() not in (".jpg", ".jpeg"):
+        return src
+    im = Image.open(src)
+    fixed = ImageOps.exif_transpose(im)
+    if fixed is im:
+        return src
+    out = src.rsplit(".", 1)[0] + "-upright.jpg"
+    fixed.convert("RGB").save(out, "JPEG", quality=92)
+    print(f"preprocess: EXIF orientation baked -> {out}")
+    return out
+
+
 def render(src: str, dst: str, style: str = DEFAULT_STYLE, edit_instruction: str = "", attempts: int = 3):
+    src = normalize_orientation(src)
     if should_preprocess(src):
         src = preprocess(src)
     uri = f"data:{mime_for(src)};base64," + base64.b64encode(pathlib.Path(src).read_bytes()).decode()
