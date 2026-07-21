@@ -105,9 +105,11 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
      用户手画门洞过窄要修正并说明(4room-final 1120→1501mm)
    - 不砌 → 删 built_segments + 恢复该门洞 door burn 语义(开放界面), 说明 enclosure 后果
 3. 改 built_segments → 重跑 pipeline(步骤 1 起) → 定稿走步骤 9 报批图。
-4. **HDB permit 判定口径**: 拆任何墙(含非承重)必须 permit; 新墙(轻质砖/drywall)随**同一张
-   permit** 用蓝色申报; 纯轻质隔断/玻璃(不固定结构、不涉电路、不开槽地面)单独做可免 permit,
-   但随拆墙工程一并申报最稳妥; 楼板荷载 ≤150kg/m² — 新墙默认轻质材料。
+4. **HDB permit 判定口径**(官方 Walls 表, hdb.gov.sg renovation-guidelines/building-works):
+   审批触发项只有**拆除** — 拆任何墙(含轻质隔墙)必须 permit, 非承重RC拆除 permit+PE 监督;
+   **砌墙(erection)一律免审批**(63mm空心砖/80mm玻璃砖/gypsum 均 Permit=No, 附采光/逃生/
+   lintol/单层/紧固件条件) — 报批清单只列拆除项可缩短评估; 例外: 湿区重围合墙绑定卫生间
+   工程包不可剥离(N* 条件墙上图)。新墙默认轻质单层材料。
 
 ## 执行 pipeline(三种模式共用)
 
