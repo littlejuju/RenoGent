@@ -189,6 +189,23 @@
       "claim_template": "engineering pitfalls for the surgical-edit pipeline.",
       "basis": "cases: rounds 2-3, six runs",
       "confidence": "high"
+    },
+    {
+      "id": "private-vestibule-attribution",
+      "kind": "room_attribution",
+      "scope": "corridor_segment",
+      "params": {
+        "rule": "split corridors/foyers by WHO each sub-segment serves: an end segment serving ONLY one bedroom's door (and its ensuite bath entered from inside that bedroom) is that bedroom's private vestibule (前室) — attribute it to the bedroom with a shared virtual plane cut at the LAST shared door jamb; only spans serving >=2 destinations (other rooms' doors, common bath, shelter, through-circulation) remain corridor",
+        "check_after_hack": "re-evaluate after door changes: bricking a door can turn a shared span into a private vestibule",
+        "cases": {
+          "4room": "strip x432-545 in front of the master-bedroom door served only that door -> merged into main-bedroom (127->146 sqft), corridor kept only the BATH/WC2-door + living-opening span (31->13 sqft); virtual cut at WC2 west jamb x545",
+          "5room": "corridor's west terminus IS the master-bedroom door — no exclusive segment beyond the last shared door -> unchanged (correct as-is)",
+          "3qr": "bedroom-foyer serves BR1 + BR2 doors (two bedrooms) -> shared, stays a foyer"
+        }
+      },
+      "claim_template": "corridor segment {segment}: serves only {room} -> private vestibule, attribute to {room}.",
+      "basis": "user review 2026-07-21 (4room main-bedroom vestibule mislabelled as corridor) + BTO convention: BATH/WC1 is the master ensuite entered via the master vestibule",
+      "confidence": "high"
     }
   ]
 }

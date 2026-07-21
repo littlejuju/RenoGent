@@ -183,5 +183,9 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
   (事实上砌到墙脸, 描述写明), flood 缝用短 seal 封(3qr-final 北围合墙 x165→x168)。
 - **R19 砌墙轮扩展**: R19d Δ ∈ [-(built脚印+2), removed脚印+2](加墙面积会降); R19c 邻接
   built 矩形的房间同样豁免(4room-final 厨房被新墙吃掉一条)。
+- **私享前室归属(用户复核定型)**: 走廊按"服务对象"切子段 — 只服务单一卧室门(含其套内卫)的
+  端头段 = 该卧室前室, 归入卧室(共享虚拟界线切在最后一个共享门垛; 4room x545=WC2西门垛,
+  主卧127→146sf); 服务≥2目的地的段才是 corridor; 门被砌掉后要**重判**(共享段可能变私享)。
+  5room(走廊西端即主卧门)/3qr(foyer 服务两卧)无独享端头段, 维持原判。
 - **克隆工作目录后清 stale assets**: 旧房间的 -2d/-3d/-crop/-dim 图会残留(如 bathroom-combined
   在 3qr-final), build_assets 不清理 — 手动删除再发布。
