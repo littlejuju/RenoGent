@@ -19,7 +19,11 @@
         "household_shelter_any_wall": "hard_no",
         "external_facade_wall": "hard_no",
         "carries_kept_door": "hard_no",
-        "brick_partition_thin_double_line_mm": [100, 170]
+        "brick_partition_thin_double_line_mm": [
+          100,
+          170
+        ],
+        "nonload_rc_pe_path": "non-load-bearing RC elements (partition/party walls, stiffeners, lintols, hangers) are demolishable WITH permit + PE (civil/structural) supervision — treat as hard_no by default, flag the PE path only when the user insists; structural RC / shelter / facade remain absolute"
       },
       "claim_template": "{segment}: black solid ink = RC structural (BTO legend 'shall not be hacked'); thin double-line 100-170mm = brick partition, hackable with permit; beam check on site.",
       "basis": "hdb_norm:structural — BTO plan legend states black walls/columns shall not be hacked; shelter is all-RC; moving windows violates facade rules",
@@ -62,15 +66,33 @@
       "kind": "permit",
       "scope": "unit",
       "params": {
-        "demolish_any_wall": "permit_required — includes non-load-bearing partitions",
-        "new_wall_with_demolition_works": "same_permit — declare new walls in BLUE on the same renovation permit application",
-        "standalone_light_partition": "exempt — lightweight partition/glass not fixed to structure, no electrical works, no floor-slab channel cutting: no permit needed; still declare if part of a permit job",
-        "floor_loading_kg_m2": 150,
-        "wet_area_works": "permit_required + PUB licensed plumber",
+        "erection_no_permit": {
+          "items": [
+            "63mm thick hollow block wall",
+            "80mm thick glass block wall",
+            "gypsum partition"
+          ],
+          "verdict": "Permit Required? = No (HDB official Walls table — wall ERECTION is not an approval item)",
+          "conditions": [
+            "adequate natural lighting + ventilation if creating a habitable room",
+            "fire escape route direct (bedroom door → main exit), not through another room",
+            "RC lintol over any opening (window/door) in hollow-block wall",
+            "only ONE layer of 63mm hollow block or 80mm glass block",
+            "gypsum: fasteners/connectors <=6mm diameter, <=40mm penetration"
+          ]
+        },
+        "demolition_permit_required": {
+          "lightweight_partitions": "Yes — demolition (partial or complete) or alteration of internal non-structural lightweight partition walls (hollow block/brick, drywall, ferrolite): up to underside of RC beam/slab only; brick top-down; drywall/ferrolite in full joint-to-joint; stop + inform HDB if steel bars found",
+          "non_load_bearing_RC": "Yes + Professional Engineer (civil/structural) must SUPERVISE the demolition and ensure repair of affected RC elements — non-load-bearing RC (partition walls, party walls, stiffeners, lintols, hangers) is demolishable with permit+PE, not an absolute hard_no",
+          "opening_between_two_flats": "Yes"
+        },
+        "approval_time_optimization": "since erection is not an approval item, the permit application's work list can carry ONLY the demolition items — blue walls on the submission plan are context, not approval scope, and do not add evaluation time. EXCEPTION: wet-area re-enclosure walls are bound into the bathroom works package (demolition approval is conditioned on re-enclosure + waterproofing) and cannot be split out.",
+        "wet_area_works": "permit_required + PUB licensed plumber; newly built flats: 3-year restriction on removal of wall/floor finishes in bathrooms/toilets (official wording)",
+        "floor_topping_loading_kg_m2": 120,
         "gas_reroute": "City Gas licensed worker"
       },
-      "claim_template": "Permit trigger is DEMOLITION, not construction: any hacking → renovation permit; new lightweight walls ride the same permit.",
-      "basis": "hdb_norm:renovation_permit (hdb.gov.sg applying-for-approval; industry guides 2025-2026)",
+      "claim_template": "Permit trigger is DEMOLITION, never ERECTION: HDB's official Walls table lists all three new-wall types as 'Permit Required? No'.",
+      "basis": "hdb_official:renovation-guidelines/building-works Walls table (hdb.gov.sg/managing-my-home/renovation-and-maintenance/renovation/renovation-guidelines/building-works, verified 2026-07)",
       "confidence": "high"
     },
     {
@@ -128,13 +150,19 @@
       "scope": "built_segment",
       "params": {
         "sliding_door_min_leaf_mm": 700,
-        "sliding_door_typical_two_leaf_mm": [1400, 1800],
+        "sliding_door_typical_two_leaf_mm": [
+          1400,
+          1800
+        ],
         "sliding_door_correction": "if the user-drawn opening gives leaves under 700mm, widen it and report the correction (case: 4room-final 1120→1501mm)",
         "half_wall_height_mm": 1100,
         "half_wall_note": "half-height lightweight partition: room modelled as enclosed in the fact layer with area_note semi-enclosed (open above ~1.1m)",
-        "single_door_typical_mm": [750, 900],
+        "single_door_typical_mm": [
+          750,
+          900
+        ],
         "enclosed_kitchen_gas": "enclosing a kitchen with a gas stove requires ventilation compliance (mechanical exhaust / external window)",
-        "new_wall_material_default": "lightweight blocks/drywall (floor loading <=150kg/m2)"
+        "new_wall_material_default": "lightweight: 63mm hollow block / 80mm glass block / gypsum partition — single layer only, erection needs NO permit (HDB Walls table)"
       },
       "claim_template": "built-segment component norms with auto-correction of undersized user-drawn openings.",
       "basis": "case:4room-final + 5room-final",
