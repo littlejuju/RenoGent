@@ -198,13 +198,34 @@
         "rule": "split corridors/foyers by WHO each sub-segment serves: an end segment serving ONLY one bedroom's door (and its ensuite bath entered from inside that bedroom) is that bedroom's private vestibule (前室) — attribute it to the bedroom with a shared virtual plane cut at the LAST shared door jamb; only spans serving >=2 destinations (other rooms' doors, common bath, shelter, through-circulation) remain corridor",
         "check_after_hack": "re-evaluate after door changes: bricking a door can turn a shared span into a private vestibule",
         "cases": {
-          "4room": "strip x432-545 in front of the master-bedroom door served only that door -> merged into main-bedroom (127->146 sqft), corridor kept only the BATH/WC2-door + living-opening span (31->13 sqft); virtual cut at WC2 west jamb x545",
+          "4room": "vestibule nook x433-495 under BR2 merged into main-bedroom (127->138 sqft) and closed by the REAL suite door at x495-504 (see master-suite-entrance-template); corridor keeps the outside-door span (21 sqft)",
           "5room": "corridor's west terminus IS the master-bedroom door — no exclusive segment beyond the last shared door -> unchanged (correct as-is)",
           "3qr": "bedroom-foyer serves BR1 + BR2 doors (two bedrooms) -> shared, stays a foyer"
         }
       },
       "claim_template": "corridor segment {segment}: serves only {room} -> private vestibule, attribute to {room}.",
       "basis": "user review 2026-07-21 (4room main-bedroom vestibule mislabelled as corridor) + BTO convention: BATH/WC1 is the master ensuite entered via the master vestibule",
+      "confidence": "high"
+    },
+    {
+      "id": "master-suite-entrance-template",
+      "kind": "room_attribution",
+      "scope": "master_bedroom",
+      "params": {
+        "pattern": "bedroom proper | DOORLESS opening in the lower segment of the bedroom/BR2 partition | vestibule nook tucked under the adjacent bedroom | REAL suite door in a VERTICAL plane at the vestibule's far end (hinge at north jamb, opens into the vestibule) | shared corridor",
+        "ink_cues": [
+          "jamb stub pairs: short ink ticks in BOTH flanking walls (top at the adjacent-bedroom wall, bottom at the bath-block wall) mark the door plane — probe for them before placing the door",
+          "dashed/solid door leaf drawn PARKED parallel against the adjacent bedroom's wall + quarter arc sweeping into the vestibule (open-90° convention); the leaf is NOT a wall",
+          "the door plane sits just before the common-bath door zone begins"
+        ],
+        "anti_pattern": "do NOT read the doorless bedroom-vestibule opening as the suite door, and do NOT close the suite with a virtual line when a real door plane exists — probe the strip for jamb stubs first",
+        "cases": {
+          "5room": "door plane x401-408 (verified)",
+          "4room": "door plane x495-504 (jamb stubs probed x495-504, zero ink at the earlier wrong x545 cut); previous two readings (door at bedroom-vestibule opening x423-433; then virtual cut at x545) were both ad-hoc and wrong"
+        }
+      },
+      "claim_template": "master-suite entrance resolves by template: opening -> vestibule -> real door at {plane} -> corridor.",
+      "basis": "user review 2026-07-21 round 2: 4room vs 5room must be structurally identical; door-position identification was previously per-case ad-hoc — now rule-driven with mandatory jamb-stub probe",
       "confidence": "high"
     }
   ]
