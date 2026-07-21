@@ -1,0 +1,160 @@
+{
+  "_comment": "HDB hacking/build-wall rulebook (productized from pj-audit-0717 rounds 1-3, 6 verified cases). Rules are DATA: thresholds, claims, sources live here; matching logic per `kind` lives in the reno-hack workflow (.claude/skills/reno-hack) and agent/hacking tools. Every verdict is stage-1 conjecture pending HDB permit + on-site beam check.",
+  "version": 1,
+  "verdict_tiers": {
+    "can": "✅ 可拆 — passes all three gates",
+    "hard_no": "❌ 不可拆 — structural or soil-stack constraint",
+    "reroute": "⚠️ 可拆但需改道 — MEP work by licensed trade",
+    "red_light": "🔴 可拆但须重建/合规 — regulation forces rebuild or extra works"
+  },
+  "rules": [
+    {
+      "id": "can-hack-structural",
+      "kind": "hack_gate",
+      "gate": 1,
+      "scope": "wall_segment",
+      "params": {
+        "rc_black_fill": "hard_no",
+        "column_in_or_adjacent": "hard_no",
+        "household_shelter_any_wall": "hard_no",
+        "external_facade_wall": "hard_no",
+        "carries_kept_door": "hard_no",
+        "brick_partition_thin_double_line_mm": [100, 170]
+      },
+      "claim_template": "{segment}: black solid ink = RC structural (BTO legend 'shall not be hacked'); thin double-line 100-170mm = brick partition, hackable with permit; beam check on site.",
+      "basis": "hdb_norm:structural — BTO plan legend states black walls/columns shall not be hacked; shelter is all-RC; moving windows violates facade rules",
+      "confidence": "high"
+    },
+    {
+      "id": "can-hack-mep",
+      "kind": "hack_gate",
+      "gate": 2,
+      "scope": "wall_segment",
+      "params": {
+        "soil_stack_wall": "hard_no",
+        "soil_stack_locator": "infer stack corner from WC pan position (pan hugs the stack corner, usually a black RC/party-wall corner); pan must not move far from stack (relocation needs HDB approval)",
+        "water_electric_in_wall": "reroute",
+        "gas_branch_near_stove": "reroute (City Gas licensed worker only)",
+        "sink_plumbing_wall": "prefer_kept — a wall carrying sink supply/waste should stay in the kept set; if a door must be cut into it, use the segment away from the fixture runs and site-verify pipe routing first"
+      },
+      "claim_template": "{segment}: non-load-bearing ≠ hackable — check risers/water/electric/gas before demolition.",
+      "basis": "case:3qr-open v2 (BATH-kitchen dividing wall kept as sink-plumbing wall) + case:3qr-final (door cut into its upper segment away from sink runs)",
+      "confidence": "high"
+    },
+    {
+      "id": "wet-area-regulation",
+      "kind": "hack_gate",
+      "gate": 3,
+      "scope": "wet_zone",
+      "params": {
+        "enclosure_mandatory": "HDB bathrooms/WCs must be enclosed (walls + door). Demolishing perimeter walls without re-enclosure = invalid plan.",
+        "enclosure_user_redrawable": "the enclosure line is a DESIGN variable: user may redraw it (e.g. wrap lobby+WC+BATH along the refuse-chute line) as long as the result is closed + has a door; absorbed dry floor joins the wet zone",
+        "waterproofing": "any wet-area wall/floor demolition breaks the membrane — redo floor waterproofing over the WHOLE enclosed zone (incl. absorbed dry areas) + wall turn-up: shower walls >=1800mm, others >=300mm; PUB licensed plumber",
+        "bto_age_ban_years": 3,
+        "bto_age_note": "flats under 3 years old: wet-area wall/floor hacking prohibited (waterproofing warranty)"
+      },
+      "claim_template": "wet zone {zone}: enclosure + waterproofing red lights apply; suggestions must include rebuild segments (built_segments) when perimeter is opened.",
+      "basis": "hdb_norm:wet_area + case:3qr-open v2 / 3qr-final",
+      "confidence": "high"
+    },
+    {
+      "id": "permit-decision",
+      "kind": "permit",
+      "scope": "unit",
+      "params": {
+        "demolish_any_wall": "permit_required — includes non-load-bearing partitions",
+        "new_wall_with_demolition_works": "same_permit — declare new walls in BLUE on the same renovation permit application",
+        "standalone_light_partition": "exempt — lightweight partition/glass not fixed to structure, no electrical works, no floor-slab channel cutting: no permit needed; still declare if part of a permit job",
+        "floor_loading_kg_m2": 150,
+        "wet_area_works": "permit_required + PUB licensed plumber",
+        "gas_reroute": "City Gas licensed worker"
+      },
+      "claim_template": "Permit trigger is DEMOLITION, not construction: any hacking → renovation permit; new lightweight walls ride the same permit.",
+      "basis": "hdb_norm:renovation_permit (hdb.gov.sg applying-for-approval; industry guides 2025-2026)",
+      "confidence": "high"
+    },
+    {
+      "id": "submission-drawing-convention",
+      "kind": "drawing",
+      "scope": "unit",
+      "params": {
+        "red": "wall/door to be demolished",
+        "blue": "new wall to be erected",
+        "yellow": "demolish + erect new wall at the SAME location (auto-detect: built rect intersects a removal rect)",
+        "base": "original floor plan (walls NOT whited out), overlays translucent, legend + notes strip mandatory"
+      },
+      "claim_template": "HDB renovation-permit floor plan colour code: RED demolition / BLUE new / YELLOW same-spot rebuild — contractors submit this exact format.",
+      "basis": "hdb_norm:permit_floorplan_colour_code — HDB precinct renovation guidelines + MyNiceHome",
+      "confidence": "high"
+    },
+    {
+      "id": "interface-maximal",
+      "kind": "hack_semantics",
+      "scope": "goal_interface",
+      "params": {
+        "rule": "on the interface between spaces being merged/opened, every segment that passes all gates is removed (doors included, per door-conflict rule); removing only part of the interface is an invalid plan (G5 machine gate: post-hack interface may contain only RC/columns/user-kept items, leftover thin ink <=60px)"
+      },
+      "claim_template": "goal interface '能拆都拆' — G5 maximal.",
+      "basis": "case:4room-living v3 rejection",
+      "confidence": "high"
+    },
+    {
+      "id": "strict-subsegment-mapping",
+      "kind": "hack_semantics",
+      "scope": "user_marks",
+      "params": {
+        "rule": "a user ✗ applies ONLY to the marked sub-segment; never extrapolate to unmarked adjacent segments (interface-maximal is goal semantics, not a licence to grow marks); after finalizing the removal set, run a connectivity self-check: kept segments must not become island/unsupported walls",
+        "unmarked_suggestion_default": "suggestion-tier built walls the user leaves unmarked in a build-wall round are accepted by default (state this in the report)"
+      },
+      "claim_template": "strict sub-segment mapping of image marks.",
+      "basis": "case:3qr-open v1 rejection (unmarked sink-plumbing wall wrongly removed)",
+      "confidence": "high"
+    },
+    {
+      "id": "door-conflict",
+      "kind": "hack_semantics",
+      "scope": "door",
+      "params": {
+        "kept": "door + jambs enter kept set; G4 zero-intersection with removal rects",
+        "not_kept": "decide by goal + enclosure: merged space with no privacy need → open area (remove door, no wall); remaining room still needs enclosure → brick up doorway (built_segments), extend new wall to nearest solid face (sparse jamb ink does not stop flood)"
+      },
+      "claim_template": "door marks resolve via goal+enclosure.",
+      "basis": "case:4room-living (open) vs 5room-suite/4room-br23/3qr-final (brick)",
+      "confidence": "high"
+    },
+    {
+      "id": "build-components-norms",
+      "kind": "build_norm",
+      "scope": "built_segment",
+      "params": {
+        "sliding_door_min_leaf_mm": 700,
+        "sliding_door_typical_two_leaf_mm": [1400, 1800],
+        "sliding_door_correction": "if the user-drawn opening gives leaves under 700mm, widen it and report the correction (case: 4room-final 1120→1501mm)",
+        "half_wall_height_mm": 1100,
+        "half_wall_note": "half-height lightweight partition: room modelled as enclosed in the fact layer with area_note semi-enclosed (open above ~1.1m)",
+        "single_door_typical_mm": [750, 900],
+        "enclosed_kitchen_gas": "enclosing a kitchen with a gas stove requires ventilation compliance (mechanical exhaust / external window)",
+        "new_wall_material_default": "lightweight blocks/drywall (floor loading <=150kg/m2)"
+      },
+      "claim_template": "built-segment component norms with auto-correction of undersized user-drawn openings.",
+      "basis": "case:4room-final + 5room-final",
+      "confidence": "high"
+    },
+    {
+      "id": "pipeline-image-gotchas",
+      "kind": "tooling",
+      "scope": "pipeline",
+      "params": {
+        "g3_collar": "leave ~250mm wall collar when removing walls abutting narrow black RC blocks (<11px), AND leave a ~3px collar when a NEW wall abuts black RC (detection-window overflow creates phantom columns); plug the flood slit with a short seal",
+        "build_full_span": "new walls must land on solid faces at both ends — sparse jamb ink does not stop flood",
+        "threshold_lines": "75-DROP/threshold single lines are not walls: don't remove, exclude from G5 zones, erase-register in merged-room seeds but keep as floor-step facts",
+        "merged_room_dims": "demote absorbed rooms' printed dims to derived with a provenance label (per-room reconciliation breaks otherwise)",
+        "r19_build_round": "area delta bound extends to [-(built footprint+2sqft), removed footprint+2sqft]; rooms adjacent to built rects exempt from the unchanged-room check",
+        "stale_assets": "after cloning a factlayer working dir, delete the previous cases' room assets before publishing"
+      },
+      "claim_template": "engineering pitfalls for the surgical-edit pipeline.",
+      "basis": "cases: rounds 2-3, six runs",
+      "confidence": "high"
+    }
+  ]
+}

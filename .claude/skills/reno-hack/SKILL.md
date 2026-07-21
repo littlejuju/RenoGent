@@ -1,6 +1,6 @@
 ---
 name: reno-hack
-description: RenoGent HDB 户型 hacking 提案器 — 输入目标(砸墙扩房/合并房间)或打叉标注图, 输出 surgical edit 后 audit 全绿的 hacking proposed fact layer + 标注图。两种模式:goal-driven / image-marked。
+description: RenoGent HDB 户型 hacking 提案器 — 输入目标(砸墙扩房/合并房间)或打叉标注图, 输出 surgical edit 后 audit 全绿的 hacking proposed fact layer + 标注图。三种模式:goal-driven / image-marked / build-wall round(hack 后干净底图交用户决策砌墙, 定稿出 HDB 报批式图)。
 ---
 
 # reno-hack · HDB 户型 hacking 提案 workflow
@@ -15,6 +15,7 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
   参考实现: `~/Documents/Claude/Projects/reno-advocate/pj-audit-0717/`
   - 原图: `factlayer-out/`(3QR v12) · 泛化图: `gen-test/{5room,4room}/factlayer-out/`
   - hack 工具: `gen-test2-hacking/make_hacks.py`(surgical edit + G1-G5) · `gen-test2-hacking/audit_hack_cross.py`(R19)
+    · `make_clean_plans.py`(build-wall 干净底图交付) · `make_submission_plans.py`(HDB 报批式定稿图)
 - 没有 fact layer 的新图 → 先走 factlayer 泛化流程(标定→seeds→trace→facts→audit), 再回来。
 
 ## 两种输入模式
@@ -81,7 +82,34 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
 3. 全部 ✅/用户确认后 → 直接执行下面的 pipeline 出图。
 4. 部分 ❌ → 报告哪些段不能拆及原因, 只拆 ✅ 段(或等用户改标记)。
 
-## 执行 pipeline(两种模式共用)
+### 模式 3 · build-wall round(hack 后第二轮交互: 砌墙决策权在用户)
+
+**不是独立 skill** — 与 hack 共用全部机器(built_segments/G2 豁免/pipeline/audit/R19),
+是同一个 image-marked loop 的第二轮。hack 案 audit 过后**不直接定稿**:
+
+1. **交付干净底图**(`make_clean_plans.py`): hack 后底图(仅白化拆除段, 不画实体新墙),
+   我的建议砌墙段画**非常浅的灰色双线** + ①②圈号, 图下 caption 分级说明:
+   - **建议级**(goal 围合, 非法规, 灰字): 用户三选一 — 按建议砌 / 手画自己的线段 / 不砌
+   - **🔴法规级**(湿区围合等, 红字"必须"): 可改画别的围合线, 但必须成封闭+门, 不砌方案不成立
+   - 手机截图类底图先 crop 掉 chrome; caption 字体 Hiragino Sans GB(✓/🔴 emoji 会豆腐块, 用文字)
+2. **用户回手画线段图 / 口头确认 / 选不砌**:
+   - 手画线段 → 映射同模式 2 严格子线段规则: 线段吸附墙轴/印刷虚线/门垛; **砌满到实体面**;
+     不得压 RC/柱/窗/保留门; 湿区围合红灯重新校验(新围合不封闭即退回重画)
+   - **用户可改画围合线取代我的法规红灯方案**(3qr-final: 沿垃圾道北阈值线包整个湿区,
+     y811 原线重砌取消) — 只要新围合成封闭+门即成立, 防水范围随围合线扩大(含并入的干区地面)
+   - **build round 可携带增量 hack**(3qr-final: 湿区门改厨房侧 → 保留墙上段开门洞 818mm) —
+     增量段照走 can-hack/MEP/法规三道闸(管线墙开洞取避让段+现场核对)
+   - **未标注的建议墙默认按建议执行**(用户只画新内容=接受建议级方案), 报告里写明
+   - **墙型标注**: 半墙(~1100mm 不到顶)/玻璃隔断/推拉门 → hack_plan 加 `wall_type`, 事实层按
+     房间围合建模但 area_note 写明 semi-enclosed; **推拉门宽度合理性**: 双扇每扇 ≥700mm,
+     用户手画门洞过窄要修正并说明(4room-final 1120→1501mm)
+   - 不砌 → 删 built_segments + 恢复该门洞 door burn 语义(开放界面), 说明 enclosure 后果
+3. 改 built_segments → 重跑 pipeline(步骤 1 起) → 定稿走步骤 9 报批图。
+4. **HDB permit 判定口径**: 拆任何墙(含非承重)必须 permit; 新墙(轻质砖/drywall)随**同一张
+   permit** 用蓝色申报; 纯轻质隔断/玻璃(不固定结构、不涉电路、不开槽地面)单独做可免 permit,
+   但随拆墙工程一并申报最稳妥; 楼板荷载 ≤150kg/m² — 新墙默认轻质材料。
+
+## 执行 pipeline(三种模式共用)
 
 ```
 1. surgical edit   在 make_hacks.py 的 HACKS dict 加/改条目(removed_segments/kept/doors_preserved)
@@ -113,7 +141,13 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
                    R19c 未动房间面积 ±1.5sqft · R19d Σ面积增量≤拆墙脚印+2sqft · R19e 柜位带全额继承
 7. 总览            build_overview.py(audit 不绿会拒绝) + 追加 Hack Plan/G1-G5/R19 三段到 00-overview.md
                    (涉湿区的案例再加"🔴湿区法规红灯"一节: 围合重砌/防水上翻/立管/燃气/楼龄)
-8. 发布            lark-cli import 到 "泛化测试二 hacking" 类文件夹 + media-insert roommap
+8. build-wall 交付  make_clean_plans.py: 干净底图(白化拆除段, 建议墙=浅灰双线+圈号,
+                   法规红灯=红字"必须") → 发用户 → 模式 3 决策循环(改 built_segments 回步骤 1)
+9. 定稿报批图       make_submission_plans.py: 砌墙定稿后按 HDB 报批规范在**原始底图**(墙未白化)上出
+                   PROPOSED RENOVATION PLAN: 红=拆除墙/门, 蓝=新砌墙, 黄=同位拆建
+                   (built∩removed 自动判黄) + legend + notes(permit/MEP/防水/持证要求)
+                   — HDB 规定 contractor 报批 floorplan 即此红/蓝/黄配色标注
+10. 发布           lark-cli import 到 "泛化测试二 hacking" 类文件夹 + media-insert roommap
                    (anchor 行 "- 00-roommap.png", --width 620); 用户人工检查 gate
 ```
 
@@ -127,6 +161,9 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
 | 5room-suite | 模式2 round-2 (3✗+1✓) | 5room-mbr + BR2门✗→**砌墙**(套房围合, built_segments 首用), 主卧门✓唯一入口, 套房241sf |
 | 4room-br23 | 模式2 round-2 (2✗+1✓) | BR2/BR3隔墙3187mm✗ + BR2门✗→砌墙 + BR3门✓唯一入口, 真合并大卧194sf |
 | 3qr-open | 模式2 round-2 复杂 (8✗+1✓) | v2(用户复核): 两卫合并30sf(隔墙✗拆, 北墙✗拆后🔴原线重砌+单门围合, BATH-厨房分隔墙未标=保留/管线墙); 厨房开放并入客厅339sf(nib+南墙两段✗); BR1/BR3套房240sf(BR3门✗砌墙); ⚠️MEP/🔴防水红灯全标注 |
+| 5room-final | 模式3 build-wall | 建议①接受 + study 半墙围合(东2158+南2009mm, ~1100mm轻质)+拐角玻璃门890mm; study 58sf semi-enclosed; R19d Δ+7 |
+| 4room-final | 模式3 build-wall | 建议①接受 + 厨房封闭(轻质墙1594mm+双扇推拉门1501mm, 用户1120mm过窄修正); 封闭厨房燃气通风注意 |
+| 3qr-final | 模式3 改画围合线+增量hack | 湿区=lobby+WC+BATH整体围合46sf: 北围合墙1859mm新建+分隔墙上段开门818mm(厨房侧入口, 管线墙避让段), y811重砌取消; Σ862 Δ+20 |
 
 ## 工程坑(必读 — 判定类规则都已并入上文章节, 这里只留 pipeline 机制坑)
 
@@ -137,3 +174,9 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
 - **合并房 R9**: 源房 printed dims 整房对账已失效 — printed 清空, 原条目降级 derived 并打"[原<room>印刷尺寸]"标签(否则 R9 用 BATH 1025×1676 对 387sf 直接炸)。
 - **V 形符号在 1974 型图 = 湿区门扇**(wet-lobby→WC/BATH 的门), 非 BTO 折叠门专利 — 随墙拆时一并划入拆除矩形。
 - **收口位置尽量到门垛/交接点/柱边**(半岛墙梢 R13 会抓; 首例 3qr y867-902 stub)。
+- **新墙贴黑RC 也要留 G3 领口**: 新墙双线贴黑墙脸会让 11×11 检测窗溢出报假柱 — 图面留 3px 领口
+  (事实上砌到墙脸, 描述写明), flood 缝用短 seal 封(3qr-final 北围合墙 x165→x168)。
+- **R19 砌墙轮扩展**: R19d Δ ∈ [-(built脚印+2), removed脚印+2](加墙面积会降); R19c 邻接
+  built 矩形的房间同样豁免(4room-final 厨房被新墙吃掉一条)。
+- **克隆工作目录后清 stale assets**: 旧房间的 -2d/-3d/-crop/-dim 图会残留(如 bathroom-combined
+  在 3qr-final), build_assets 不清理 — 手动删除再发布。
