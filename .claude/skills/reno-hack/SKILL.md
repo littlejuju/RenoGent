@@ -8,6 +8,8 @@ description: RenoGent HDB 户型 hacking 提案器 — 输入目标(砸墙扩房
 对一个**已有 fact layer**(audit GREEN)的户型, 生成 hacking proposed 版本:
 surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1-R18 + R19 交叉验证 → 总览+标注图。
 **任何 hack 输出都是 PROPOSED(拟改), 不是现状; 落地需 HDB permit + 梁下现场复核。**
+**状态: loop 1 已收敛 (2026-07-21)** — 三模式×三案闭环全绿; 规则数据 agent/hacking/hacking_rules.json,
+工具四件套+S闸 agent/hacking/, 交付=三图(base-fact/HDB报批v2/roommap)+房间事实库。
 
 ## 前置条件
 
@@ -156,6 +158,16 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
                    (anchor 行 "- 00-roommap.png", --width 620); 用户人工检查 gate
 ```
 
+## 读图归属规则(hack 前后都要跑的 fact-layer 判定 — 规则数据在 agent/hacking/hacking_rules.json)
+
+- **私享前室归属**: 走廊/前厅按"服务对象"切子段 — 只服务单一卧室(含其套内卫)的端头段 = 该卧室
+  前室, 归入卧室; 服务≥2目的地(他房门/公卫/shelter/穿行)的段才是 corridor; 门被砌掉后**重判**
+  (共享段可能变私享)。3qr bedroom-foyer 服务两卧=保留。
+- **主卧套房入口模板(5room/4room 同构验证)**: 卧室 → BR2隔墙下段**无门开口** → 前室凹兜
+  (邻卧下方) → 前室远端**垂直墙面上的实体套房门**(铰北门垛, 内开; ink 判据: 两侧夹墙短门垛墩
+  成对 + 虚线门叶贴邻墙停靠 + 弧扫进前室) → 走廊。**先探门垛墩再定门位, 禁止临场感觉** —
+  4room 曾两次误判(把无门开口当门 x423-433 / 虚拟线切 x545), 真门 x495-504 探墩证实。
+
 ## 已验证案例(回归基准)
 
 | 案例 | 类型 | 结果 |
@@ -167,7 +179,7 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
 | 4room-br23 | 模式2 round-2 (2✗+1✓) | BR2/BR3隔墙3187mm✗ + BR2门✗→砌墙 + BR3门✓唯一入口, 真合并大卧194sf |
 | 3qr-open | 模式2 round-2 复杂 (8✗+1✓) | v2(用户复核): 两卫合并30sf(隔墙✗拆, 北墙✗拆后🔴原线重砌+单门围合, BATH-厨房分隔墙未标=保留/管线墙); 厨房开放并入客厅339sf(nib+南墙两段✗); BR1/BR3套房240sf(BR3门✗砌墙); ⚠️MEP/🔴防水红灯全标注 |
 | 5room-final | 模式3 build-wall | 建议①接受 + study 半墙围合(东2158+南2009mm, ~1100mm轻质)+拐角玻璃门890mm; study 58sf semi-enclosed; R19d Δ+7 |
-| 4room-final | 模式3 build-wall | 建议①接受 + 厨房封闭(轻质墙1594mm+双扇推拉门1501mm, 用户1120mm过窄修正); 封闭厨房燃气通风注意 |
+| 4room-final | 模式3 build-wall | 建议①接受 + 厨房封闭(轻质墙1594mm+双扇推拉门1501mm, 用户1120mm过窄修正); 封闭厨房燃气通风注意; 主卧138sf(前室并入+实门x495-504收口, 套房入口模板案例)/走廊21sf |
 | 3qr-final | 模式3 改画围合线+增量hack | 湿区=lobby+WC+BATH整体围合46sf: 北围合墙1859mm新建+分隔墙上段开门818mm(厨房侧入口, 管线墙避让段), y811重砌取消; Σ862 Δ+20 |
 
 ## 工程坑(必读 — 判定类规则都已并入上文章节, 这里只留 pipeline 机制坑)
@@ -183,11 +195,5 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
   (事实上砌到墙脸, 描述写明), flood 缝用短 seal 封(3qr-final 北围合墙 x165→x168)。
 - **R19 砌墙轮扩展**: R19d Δ ∈ [-(built脚印+2), removed脚印+2](加墙面积会降); R19c 邻接
   built 矩形的房间同样豁免(4room-final 厨房被新墙吃掉一条)。
-- **私享前室归属(用户复核定型)**: 走廊按"服务对象"切子段 — 只服务单一卧室的端头段 = 前室,
-  归入卧室; 服务≥2目的地的段才是 corridor; 门被砌掉后要**重判**。3qr foyer 服务两卧=保留。
-- **主卧套房入口模板(用户二次复核定型, 5room/4room 同构)**: 卧室 → BR2隔墙下段**无门开口** →
-  前室凹兜(邻卧下方) → 前室远端**垂直墙面上的实体套房门**(铰北门垛, 内开; ink 判据: 两侧
-  夹墙短门垛墩成对 + 虚线门叶贴邻墙停靠 + 弧扫进前室) → 走廊。**先探门垛墩再定门位** —
-  4room 曾两次误判(把无门开口当门 x423-433 / 虚拟线切 x545), 真门在 x495-504(探墩证实)。
 - **克隆工作目录后清 stale assets**: 旧房间的 -2d/-3d/-crop/-dim 图会残留(如 bathroom-combined
   在 3qr-final), build_assets 不清理 — 手动删除再发布。
