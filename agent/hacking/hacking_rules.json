@@ -103,10 +103,16 @@
         "red": "wall/door to be demolished",
         "blue": "new wall to be erected",
         "yellow": "demolish + erect new wall at the SAME location (auto-detect: built rect intersects a removal rect)",
-        "base": "original floor plan (walls NOT whited out), overlays translucent, legend + notes strip mandatory"
+        "base": "original floor plan (walls NOT whited out), overlays translucent, legend + notes strip mandatory",
+        "three_image_deliverable": {
+          "1_base_fact": "as-proposed updated floorplan (hacked+built, no colour) — new project baseline for fact layer / renders",
+          "2_hdb_submission": "approval-scope ONLY: demolition items + approval-bound rebuilds (wet-area enclosure); every item labelled W*/N* on-plan with a wall schedule (位置/类型/长度mm/厚度mm/动作) + per-item施工条件; permit-free erections EXCLUDED (one 免审批 note line); thickness MEASURED from plan ink",
+          "3_factlayer_roommap": "decomposition asset from the pipeline"
+        },
+        "submission_audit_gates": "S1 data-complete (per-wall dims mandatory — real submissions bounce on missing data) / S2 scope-exact (no permit-free wall leaks on) / S3 legend+title+dims+unit / S4 wet clauses / S5 id convention; validator = agent/hacking/submission_audit.py, exit-gated before publishing"
       },
       "claim_template": "HDB renovation-permit floor plan colour code: RED demolition / BLUE new / YELLOW same-spot rebuild — contractors submit this exact format.",
-      "basis": "hdb_norm:permit_floorplan_colour_code — HDB precinct renovation guidelines + MyNiceHome",
+      "basis": "hdb_norm:permit_floorplan_colour_code — HDB precinct renovation guidelines + MyNiceHome + user-reported real case: a submission was bounced for insufficient drawing data, stalling hacking approval — data table is mandatory",
       "confidence": "high"
     },
     {

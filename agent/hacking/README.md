@@ -11,14 +11,16 @@
 | `gates.py` | G1-G5 合理性闸 + surgical edit 出图。输入 hack_plan.json + 底图，输出 hacked 图 + validation 报告，exit 0=全过 |
 | `cross_audit.py` | R19a-e 交叉验证（hack 衍生事实层 vs 源事实层）：柱并集/窗守恒/未动房间±1.5sqft/面积预算 Δ∈[-(砌墙脚印+2), 拆墙脚印+2]/柜位带继承 |
 | `clean_plan.py` | build-wall round 干净底图（拆除白化 + 建议墙浅灰线圈号 + 分级 caption：灰=建议级三选一 / 红=法规级必须围合） |
-| `submission_plan.py` | HDB 报批式定稿图（红=拆 / 蓝=砌 / 黄=同位拆建自动判 + legend + notes） |
+| `submission_plan.py` | HDB 报批专用图 v2：只含审批项（拆除+湿区条件墙），W*/N* 引出编号 + 墙体数据表（位置/类型/长度/厚度实测/动作）+ 施工条件；免审批新墙整体排除。输入 hack_plan + schedule.json，输出图 + manifest |
+| `submission_audit.py` | S1-S5 报批数据闸：数据完整/范围精确/图面要件/湿区条款/编号规范 — 防「数据不够被退回」，发布前必须 exit 0 |
 
 ## 交互 flow（loop 1 已验证闭环）
 
 ```
 用户目标/打叉图 → 三道闸逐段判定(✅/❌/⚠️/🔴) → gates.py 过闸 → factlayer 重跑+audit+R19
   → clean_plan.py 干净底图交用户 → 用户手画砌墙线段(可改画围合线/携带增量hack)
-  → 重跑定稿 → submission_plan.py 报批图(ID 直接对照提交 HDB)
+  → 重跑定稿 → 三图交付: ①base-fact 更新后户型基线 ②submission_plan.py 报批专用图(数据表)
+     + submission_audit.py S1-S5 过闸 ③factlayer roommap 拆解图
 ```
 
 ## hack_plan.json schema

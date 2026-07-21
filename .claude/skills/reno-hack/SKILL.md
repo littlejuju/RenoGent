@@ -143,10 +143,13 @@ surgical edit 图纸 → 合理性闸 → 重跑 factlayer pipeline → audit R1
                    (涉湿区的案例再加"🔴湿区法规红灯"一节: 围合重砌/防水上翻/立管/燃气/楼龄)
 8. build-wall 交付  make_clean_plans.py: 干净底图(白化拆除段, 建议墙=浅灰双线+圈号,
                    法规红灯=红字"必须") → 发用户 → 模式 3 决策循环(改 built_segments 回步骤 1)
-9. 定稿报批图       make_submission_plans.py: 砌墙定稿后按 HDB 报批规范在**原始底图**(墙未白化)上出
-                   PROPOSED RENOVATION PLAN: 红=拆除墙/门, 蓝=新砌墙, 黄=同位拆建
-                   (built∩removed 自动判黄) + legend + notes(permit/MEP/防水/持证要求)
-                   — HDB 规定 contractor 报批 floorplan 即此红/蓝/黄配色标注
+9. 定稿三图交付     ①base-fact: 更新后户型基础事实图(hacked+built 无色) = 新项目基线;
+                   ②HDB 报批专用图(agent/hacking/submission_plan.py): **只含审批项** —
+                   拆除段(红,W*编号) + 审批包内条件墙(蓝,N*, 如湿区围合); 每项带墙体数据表
+                   (位置/类型/长度mm/厚度mm实测/动作)+施工条件; 免审批新墙(HDB Walls表
+                   erection=No: 空心砖/玻璃砖/gypsum)整体不上图, 一行免审批注说明
+                   → submission_audit.py S1-S5 数据闸 exit 0 才能发布(防数据不够被退回);
+                   ③factlayer roommap 拆解图(pipeline 产物)
 10. 发布           lark-cli import 到 "泛化测试二 hacking" 类文件夹 + media-insert roommap
                    (anchor 行 "- 00-roommap.png", --width 620); 用户人工检查 gate
 ```
