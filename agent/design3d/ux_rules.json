@@ -1,0 +1,29 @@
+{
+  "_about": "A4 gate — occupant-experience (ID/UX) rules. Principles-as-data per designer-v2 A1.2. Each rule carries provenance: who taught it, and industry corroboration.",
+  "rules": [
+    {
+      "id": "R-UX-1", "name": "fcu-direct-throw-vs-pillow-clearance",
+      "rule": "The FCU direct-throw footprint (unit span +200mm each side, extended 2600mm along the throw direction) must not intersect the pillow zone (the 480mm strip of the bed at its head end, full bed width).",
+      "provenance": {
+        "origin": "ID contractor verbal advice (identity in private provenance log, outside repo), reference-case aircon discussion 2026-03-18 showroom meeting — not in message archive (checked 2026-07-22)",
+        "industry": [
+          "https://dellahome.com/blogs/della-blog/where-to-place-air-conditioner-in-bedroom",
+          "https://www.ikea.co.id/en/inspirations/ac-placement-in-the-bedroom",
+          "https://aircondlounge.com/best-position-for-air-conditioner-in-bedroom/",
+          "https://www.warmzilla.co.uk/blog/best-place-to-install-air-conditioner"
+        ],
+        "verdict": "industry-wide installer/manufacturer guidance, not a personal heuristic"
+      }
+    },
+    {
+      "id": "R-UX-2", "name": "fcu-not-above-headboard",
+      "rule": "The FCU must not be mounted on the same wall the bed head touches within 600mm horizontally of the bed span (no unit directly above the headboard).",
+      "provenance": { "industry": ["https://dellahome.com/blogs/della-blog/where-to-place-air-conditioner-in-bedroom"] }
+    },
+    {
+      "id": "R-UX-3", "name": "preferred-positions-note",
+      "rule": "ADVISORY (not gating): preferred spots are perpendicular to the bed or above the bedroom door, mounted 2.1-2.4m high.",
+      "provenance": { "industry": ["https://aircondlounge.com/best-position-for-air-conditioner-in-bedroom/"] }
+    }
+  ]
+}
