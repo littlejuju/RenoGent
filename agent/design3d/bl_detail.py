@@ -135,44 +135,86 @@ for name, o in objs.items():
     elif name.startswith("mep") or name.startswith("skt"): assign(o, MATS["white-plastic"])
     elif name.startswith("risk"): assign(o, MATS["ceiling"])   # design renders: boxed bulkhead look (beam-present basis)
 
-# door gaps + handles on joinery fronts: (object, front axis, sign, n_doors, handle)
-JOINERY = [
-    ("fur-closet-west:closet", 0, +1, 2, True), ("fur-closet-south:closet", 1, +1, 3, True),
-    ("fur-closet-return:closet", 0, +1, 0, False), ("fur-wardrobe-pocket:closet", 1, +1, 3, True),
-    ("fur-cab-bay:closet", 1, -1, 2, True),
-    ("fur-cab-br3:cabinet", 1, -1, 4, False), ("fur-cab-br1:cabinet", 1, -1, 3, False),
-    ("fur-nightstand-n:table", 0, -1, 0, False), ("fur-nightstand-s:table", 0, -1, 0, False),
-]
+# joinery fronts — driven by the model's D2 `fronts` data (hinge sides, door types,
+# plinths). Handles sit at the OPENING edge (opposite hinge, R-J-5) at hardware.handle_z;
+# sliding doors get recessed edge pulls; drawers get a centred bar. Same data audit_a5
+# gates, so render and audit cannot drift apart.
 GAP, PROUD = 7, 3
-for name, ax, sign, ndoors, handle in JOINERY:
+HW = M.get("hardware", {})
+HZ, BAR = HW.get("handle_z", 1000), HW.get("bar_len", 220)
+for fitem in M["furniture"]:
+    fr = fitem.get("fronts")
+    name = f"{fitem['id']}:{fitem['kind']}"
     o = objs.get(name)
     if not o: continue
     mn, mx = bb(o)
+    if not fr:
+        continue
+    ax, sign = fr["face"]
     face = (mx if sign > 0 else mn)[ax] + sign * PROUD
-    u = 1 - ax  # horizontal axis along the front (0 or 1)
-    lo, hi = mn[u], mx[u]
-    zt = mx[2]
+    u = 1 - ax
+    z_pl = mn[2] + fr.get("plinth", 0)
+    z_top = min(mx[2], 2400)                     # carcass door zone; top box above stays flush
     mat_gap = plain(f"gap-{name}", (0.05, 0.04, 0.03), 0.9)
-    for d in range(1, max(ndoors, 1)):
-        p = lo + (hi - lo) * d / ndoors
+    def vgap(tag, p, z0, z1):
         co = [0, 0, 0, 0, 0, 0]
         co[ax], co[ax + 3] = face - sign * 6, face
         co[u], co[u + 3] = p - GAP / 2, p + GAP / 2
-        co[2], co[5] = mn[2] + 20, zt - 20
-        mkbox(f"gap-{name}-{d}", *co, mat_gap)
-    if handle and ndoors:
-        for d in range(ndoors):
-            p = lo + (hi - lo) * (d + (0.88 if d % 2 == 0 else 0.12)) / ndoors
+        co[2], co[5] = z0, z1
+        mkbox(f"gap-{name}-{tag}", *co, mat_gap)
+    def hgap(tag, s0, s1, z):
+        co = [0, 0, 0, 0, 0, 0]
+        co[ax], co[ax + 3] = face - sign * 6, face
+        co[u], co[u + 3] = s0 + GAP, s1 - GAP
+        co[2], co[5] = z - GAP / 2, z + GAP / 2
+        mkbox(f"gap-{name}-{tag}", *co, mat_gap)
+    # plinth recess (dark shadow line)
+    if fr.get("plinth"):
+        co = [0, 0, 0, 0, 0, 0]
+        co[ax], co[ax + 3] = sorted((face - sign * PROUD, face - sign * (PROUD + 40)))
+        co[u], co[u + 3] = mn[u] + 10, mx[u] - 10
+        co[2], co[5] = mn[2], z_pl
+        mkbox(f"plinth-{name}", *co, plain(f"plmat-{name}", (0.09, 0.07, 0.06), 0.85))
+    if z_top < mx[2] - 30:                       # top-box junction shadow line
+        hgap("topbox", mn[u], mx[u], z_top)
+    doors = fr["doors"]
+    for i, d in enumerate(doors):
+        s0, s1 = d["span"]
+        if i == 0 and s0 > mn[u] + 30: vgap(f"d{i}l", s0, z_pl + 20, z_top - 20)   # blind-panel joint
+        if s1 < mx[u] - 30: vgap(f"d{i}r", s1, z_pl + 20, z_top - 20)
+        if d["type"] == "hinged":
+            hp = (s1 - 45) if d.get("hinge") == "low" else (s0 + 45)
             co = [0, 0, 0, 0, 0, 0]
             co[ax], co[ax + 3] = face, face + sign * 18
-            co[u], co[u + 3] = p - 10, p + 10
-            zc = min(1100, zt - 300)
-            co[2], co[5] = zc - 150, zc + 150
-            mkbox(f"hdl-{name}-{d}", *co, MATS["brass"])
-    if name.startswith("fur-cab-") and "bay" not in name:
-        mn2, mx2 = bb(o)   # counter top slab on low cabinets
-        mkbox(f"top-{name}", mn2[0] - 15, mn2[1] - 15 * sign if ax == 1 else mn2[1], mx2[2],
-              mx2[0] + 15, mx2[1], mx2[2] + 22, MATS["walnut-light"])
+            co[u], co[u + 3] = hp - 10, hp + 10
+            zc = min(HZ, z_top - 300)
+            co[2], co[5] = zc - BAR / 2, zc + BAR / 2
+            mkbox(f"hdl-{name}-{i}", *co, MATS["brass"])
+        elif d["type"] == "sliding":
+            # alternate panels proud/flush + recessed edge pull on the leading edge
+            co = [0, 0, 0, 0, 0, 0]
+            co[ax], co[ax + 3] = face, face + sign * (14 if i % 2 == 0 else 4)
+            co[u], co[u + 3] = s0 + 3, s1 - 3
+            co[2], co[5] = z_pl + 6, z_top - 6
+            mkbox(f"slide-{name}-{i}", *co, MATS["walnut-light"])
+            pe = (s1 - 30) if i % 2 == 0 else (s0 + 30)
+            co = [0, 0, 0, 0, 0, 0]
+            co[ax], co[ax + 3] = face + sign * (14 if i % 2 == 0 else 4), face + sign * (15 if i % 2 == 0 else 5)
+            co[u], co[u + 3] = pe - 12, pe + 12
+            co[2], co[5] = HZ - 160, HZ + 160
+            mkbox(f"pull-{name}-{i}", *co, plain(f"pullmat-{name}-{i}", (0.06, 0.05, 0.04), 0.6))
+        elif d["type"] == "drawer":
+            hgap(f"dw{i}", s0, s1, mn[2] + (mx[2] - mn[2]) * 0.55)
+            co = [0, 0, 0, 0, 0, 0]
+            co[ax], co[ax + 3] = face, face + sign * 16
+            cm = (s0 + s1) / 2
+            co[u], co[u + 3] = cm - BAR / 2, cm + BAR / 2
+            zc = mn[2] + (mx[2] - mn[2]) * 0.55 + 90
+            co[2], co[5] = zc - 10, zc + 10
+            mkbox(f"hdl-{name}-{i}", *co, MATS["brass"])
+    if fitem["id"] in ("fur-cab-br3", "fur-cab-br1"):   # counter top slab on low cabinets
+        mkbox(f"top-{name}", mn[0] - 15, mn[1] - 15, mx[2],
+              mx[0] + 15, mx[1], mx[2] + 22, MATS["walnut-light"])
 
 # bed dressing: frame stays walnut; add mattress, duvet, pillows
 bed = objs.get("fur-bed:bed")

@@ -177,9 +177,9 @@ CLASSES = {"wall": (0.8, 0.1, 0.1), "floor": (0.1, 0.1, 0.8), "ceiling": (0.8, 0
            "glass": (0.1, 0.8, 0.8), "mep": (0.9, 0.5, 0.1), "risk": (0.4, 0.0, 0.0),
            "closet": (0.1, 0.7, 0.1), "cabinet": (0.2, 0.9, 0.2), "bed": (0.3, 0.6, 0.1),
            "table": (0.1, 0.5, 0.3), "lamp": (1.0, 0.6, 0.8), "rug": (0.5, 0.9, 0.9),
-           "blackout": (0.7, 0.1, 0.7), "sheer": (0.9, 0.4, 0.9)}
+           "blackout": (0.7, 0.1, 0.7), "sheer": (0.9, 0.4, 0.9), "boxup": (0.55, 0.55, 0.95)}
 STRUCT = ["wall", "floor", "ceiling", "glass", "mep", "risk"]
-ADDITIVE = ["closet", "cabinet", "bed", "table", "lamp", "rug", "blackout", "sheer"]
+ADDITIVE = ["closet", "cabinet", "bed", "table", "lamp", "rug", "blackout", "sheer", "boxup"]
 worst = 0.0; per = {}
 for cam in M["cameras"]:
     cid = cam["id"]

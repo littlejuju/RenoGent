@@ -1,0 +1,48 @@
+{
+  "version": "2026-07-24",
+  "scope": "D-layer P0: joinery craft (D1) + opening/hardware model (D2). Rules-as-data, same form as ux_rules.json; enforced by audit_a5_joinery.py.",
+  "rules": [
+    {
+      "id": "R-J-1",
+      "name": "top-closure",
+      "statement": "Any joinery unit taller than 1800mm must reach the ceiling (carcass + top box) — no open dust gap between cabinet top and ceiling. Counter-height units (top <= sill+50) are exempt by design.",
+      "provenance": "Standard HDB ID carpentry practice (2400 carcass + boxed-up top); project lesson 2026-07-23: user flagged cabinets stopping short of ceiling in renders.",
+      "verdict": "industry-wide carpentry norm"
+    },
+    {
+      "id": "R-J-2",
+      "name": "equipment-box-up",
+      "statement": "Wall-mounted equipment (FCU, exposed trunking heads) must be boxed: every open gap between the unit and adjacent soffit/wall/joinery smaller than 200mm is closed with plaster/carpentry box-up, flush with the unit face.",
+      "provenance": "Standard aircon installation finishing detail; project lesson 2026-07-23: user flagged un-boxed gaps around the above-door FCU.",
+      "verdict": "industry-wide finishing norm"
+    },
+    {
+      "id": "R-J-3",
+      "name": "end-closure",
+      "statement": "Residual gaps between a joinery run end and the nearest wall: <=20mm scribe is fine, 20-300mm must be closed with a filler/blind panel, >300mm must be usable space. Blind-corner panels required where two runs meet in an internal corner.",
+      "provenance": "Carpentry scribe/filler practice; project lessons: wardrobe east dead pocket (AV gate 2026-07-23), L-closet corner.",
+      "verdict": "industry-wide carpentry norm"
+    },
+    {
+      "id": "R-J-4",
+      "name": "plinth-and-service-gap",
+      "statement": "Floor-standing joinery gets a recessed plinth; services (trunking) may run in declared plinth/back service gaps (<=150mm, declared via attach/note). Doors start above the plinth and above any service run crossing the front.",
+      "provenance": "A2-3 attach rule generalised; installer skirting-run practice.",
+      "verdict": "industry-wide"
+    },
+    {
+      "id": "R-J-5",
+      "name": "hardware-family",
+      "statement": "One handle family per room, uniform mounting height band (centre 900-1100mm). Hinged doors: handle at the opening edge (opposite the hinge), so the hardware itself reads as the opening instruction. Sliding doors: recessed edge pulls, no protruding bar. Drawers: centred horizontal bar.",
+      "provenance": "ID hardware convention; project lesson 2026-07-23: user could not tell how wardrobe doors open (handles were decorative, centred per leaf).",
+      "verdict": "ID convention, gate-checkable from fronts data"
+    },
+    {
+      "id": "R-J-6",
+      "name": "door-swing-clearance",
+      "statement": "Every hinged leaf sweeps a quarter-circle (bounded by span x span x door height). The sweep must be clear of fixed furniture, MEP and walls (soft items exempt: curtains, rug). If clearance in front of the unit is smaller than the leaf width, the design must switch to sliding doors, narrower leaves, or relocate the obstacle.",
+      "provenance": "A3-4 room-door swing rule generalised to joinery; project lesson 2026-07-23: bay tall-cabinet leaf would hit the nightstand (user: door cannot open).",
+      "verdict": "functional hard rule"
+    }
+  ]
+}

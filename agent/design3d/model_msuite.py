@@ -96,7 +96,7 @@ mep = {
         {"id": "skt-bed-n", "p": [X(770) - 10, 3500, 300], "face": "east", "use": "bedside north"},
         {"id": "skt-bed-s", "p": [X(770) - 10, 1500, 300], "face": "east", "use": "bedside south + floor lamp"},
         {"id": "skt-closet", "p": [X(434) + 10, 2000, 300], "face": "west", "use": "walk-in closet"},
-        {"id": "skt-br3", "p": [X(500), Y(698) - 10, 300], "face": "north", "use": "dresser/vanity zone"},
+        {"id": "skt-br3", "p": [2700, Y(698) - 10, 1150], "face": "north", "use": "dresser/vanity above counter, on the inter-window pier x2574-2830"},
     ],
 }
 
@@ -124,36 +124,64 @@ furniture = [
      "color": "linen", "note": "queen, head on east wall between jogs y711-877"},
     {"id": "fur-headboard", "kind": "bed", "box": [bed_head_x - 80, bed_cy - BED_W/2, 0, bed_head_x, bed_cy + BED_W/2, 1150],
      "color": "light-walnut"},
-    {"id": "fur-nightstand-n", "kind": "table", "box": [bed_head_x - 450, bed_cy + BED_W/2 + 80, 0, bed_head_x, bed_cy + BED_W/2 + 530, 500], "color": "light-walnut"},
-    {"id": "fur-nightstand-s", "kind": "table", "box": [bed_head_x - 450, bed_cy - BED_W/2 - 530, 0, bed_head_x, bed_cy - BED_W/2 - 80, 500], "color": "light-walnut"},
+    {"id": "fur-nightstand-n", "kind": "table", "box": [bed_head_x - 450, bed_cy + BED_W/2 + 80, 0, bed_head_x, bed_cy + BED_W/2 + 530, 500], "color": "light-walnut",
+     "fronts": {"face": [0, -1], "plinth": 60, "doors": [{"span": [bed_cy + BED_W/2 + 80, bed_cy + BED_W/2 + 530], "type": "drawer"}]}},
+    {"id": "fur-nightstand-s", "kind": "table", "box": [bed_head_x - 450, bed_cy - BED_W/2 - 530, 0, bed_head_x, bed_cy - BED_W/2 - 80, 500], "color": "light-walnut",
+     "fronts": {"face": [0, -1], "plinth": 60, "doors": [{"span": [bed_cy - BED_W/2 - 530, bed_cy - BED_W/2 - 80], "type": "drawer"}]}},
     # walk-in closet: former BR3 south zone; furniture-defined (no new wall -> no permit item)
-    {"id": "fur-closet-west", "kind": "closet", "box": [X(441), Y(914), 0, X(441) + 600, Y(790), 2400],
-     "color": "light-walnut", "note": "600-deep wardrobe run; back at x441 jog line (SW column bump), small void behind upper half"},
-    {"id": "fur-closet-south", "kind": "closet", "box": [X(441) + 600, Y(914), 0, X(575), Y(914) + 600, 2400],
-     "color": "light-walnut", "note": "600-deep run on south wall, stops 900+ clear of door line"},
-    {"id": "fur-closet-return", "kind": "closet", "box": [X(575), Y(914), 0, X(590), Y(914) + 600, 2400],
-     "color": "light-walnut", "note": "end panel return at closet mouth"},
+    {"id": "fur-closet-west", "kind": "closet", "box": [X(441), Y(914), 0, X(441) + 600, Y(790), CEIL],
+     "color": "light-walnut", "note": "600-deep wardrobe run, 2400 carcass + top box to ceiling (R-J-1); back at x441 jog line, small void behind upper half; south 600 = blind-corner panel (R-J-3), doors start y1111",
+     "fronts": {"face": [0, 1], "plinth": 100, "doors": [
+         {"span": [1111, 1616], "type": "hinged", "hinge": "low"},
+         {"span": [1616, 2121], "type": "hinged", "hinge": "high"},
+         {"span": [2121, 2626], "type": "hinged", "hinge": "high"}]}},
+    {"id": "fur-closet-south", "kind": "closet", "box": [X(441) + 600, Y(914), 0, X(575), Y(914) + 600, CEIL],
+     "color": "light-walnut", "note": "600-deep run on south wall, 2400 carcass + top box (R-J-1), stops 900+ clear of door line",
+     "fronts": {"face": [1, 1], "plinth": 100, "doors": [
+         {"span": [719.4, 1281], "type": "hinged", "hinge": "low"},
+         {"span": [1281, 1843], "type": "hinged", "hinge": "high"},
+         {"span": [1843, 2404.4], "type": "hinged", "hinge": "high"}]}},
+    {"id": "fur-closet-return", "kind": "closet", "box": [X(575), Y(914), 0, X(590), Y(914) + 600, CEIL],
+     "color": "light-walnut", "note": "end panel return at closet mouth, runs to ceiling with the top box (R-J-1)"},
     # pocket wardrobe: SE niche x669-770 y914-944 (cabinet_niches[0])
-    {"id": "fur-wardrobe-pocket", "kind": "closet", "box": [X(669), Y(944), 0, X(763), Y(914), 2400],
-     "color": "light-walnut", "note": "front face at x763 jog so the unit clears the east-wall step",
-     "ref": ["facts:rooms.master-suite.cabinet_niches[0]"]},
-    {"id": "fur-wardrobe-filler", "kind": "closet", "box": [X(763), Y(944), 0, X(770), Y(926), 2400],
+    {"id": "fur-wardrobe-pocket", "kind": "closet", "box": [X(669), Y(944), 0, X(763), Y(914), CEIL],
+     "color": "light-walnut", "note": "front face at x763 jog so the unit clears the east-wall step; 2400 carcass + top box (R-J-1); doors start z280 above the plinth-level trunk-b (R-J-4)",
+     "ref": ["facts:rooms.master-suite.cabinet_niches[0]"],
+     "fronts": {"face": [1, 1], "plinth": 280, "doors": [
+         {"span": [4006.8, 4541], "type": "hinged", "hinge": "low"},
+         {"span": [4541, 5075], "type": "hinged", "hinge": "high"},
+         {"span": [5075, 5609.4], "type": "hinged", "hinge": "high"}]}},
+    {"id": "fur-wardrobe-filler", "kind": "closet", "box": [X(763), Y(944), 0, X(770), Y(926), CEIL],
      "color": "light-walnut", "note": "boxed-in filler closing the 119x307 dead pocket east of the wardrobe to the wall (standard joinery end detail)"},
     # under-window cabinets — warm off-white (P1)
     {"id": "fur-cab-br3", "kind": "cabinet", "box": [X(440), Y(698), 0, X(440) + 2472, Y(698) + 324, SILL],
      "color": "off-white", "note": "fills 324 parapet band outward of wall face, front flush, h=sill",
-     "ref": ["facts:rooms.master-suite.cabinet_niches[2]"]},
+     "ref": ["facts:rooms.master-suite.cabinet_niches[2]"],
+     "fronts": {"face": [1, -1], "plinth": 100, "doors": [
+         {"span": [102.3, 720], "type": "hinged", "hinge": "low"}, {"span": [720, 1338], "type": "hinged", "hinge": "high"},
+         {"span": [1338, 1956], "type": "hinged", "hinge": "low"}, {"span": [1956, 2574.3], "type": "hinged", "hinge": "high"}]}},
     {"id": "fur-cab-br1", "kind": "cabinet", "box": [X(600), Y(698), 0, X(600) + 1671, Y(698) + 324, SILL],
      "color": "off-white", "note": "BR1 under-window cabinet in the newly-registered 324 band, front flush, h=sill",
-     "ref": ["facts:rooms.master-suite.cabinet_niches[3] (added 2026-07-22)"]},
-    {"id": "fur-cab-bay", "kind": "closet", "box": [X(699) + 3, Y(698) + 3, 0, X(763) - 103, Y(662) - 108, 2400],
-     "color": "light-walnut", "note": "tall cabinet in the beside-window niche (高柜位), 1950 doors + boxed-in top filler to ceiling line; back 108mm + east side 100mm held off the niche walls for the plinth-level trunking",
+     "ref": ["facts:rooms.master-suite.cabinet_niches[3] (added 2026-07-22)"],
+     "fronts": {"face": [1, -1], "plinth": 100, "doors": [
+         {"span": [2830.3, 3387], "type": "hinged", "hinge": "low"}, {"span": [3387, 3944], "type": "hinged", "hinge": "high"},
+         {"span": [3944, 4501.3], "type": "hinged", "hinge": "high"}]}},
+    {"id": "fur-cab-bay", "kind": "closet", "box": [X(699) + 3, Y(698) + 3, 0, X(763) - 103, Y(662) - 108, CEIL],
+     "color": "light-walnut", "note": "tall cabinet in the beside-window niche, carcass + top box to ceiling (R-J-1); back 108mm + east side 100mm held off niche walls for plinth trunking (R-J-4 service gap); SLIDING doors — 250mm clearance to nightstand-n cannot take a hinged leaf (R-J-6/A5-4)",
+     "fronts": {"face": [1, -1], "plinth": 100, "doors": [
+         {"span": [4521.3, 5014], "type": "sliding"}, {"span": [5014, 5506.4], "type": "sliding"}]},
      "ref": ["facts:rooms.master-suite.cabinet_niches[1] (corrected: high-cabinet recess, not window bay)"]},
+    {"id": "fur-boxup-fcu-top", "kind": "boxup", "box": [2963, Y(905), 2390, 3887, Y(905) + 220, CEIL],
+     "color": "plaster", "note": "R-J-2: plaster box-up FCU top band to ceiling, flush with unit face"},
+    {"id": "fur-boxup-fcu-w", "kind": "boxup", "box": [2963, Y(905), 2150, 2990, Y(905) + 220, 2390],
+     "color": "plaster", "note": "R-J-2: closes the 27mm gap between FCU west end and the beam-band edge"},
+    {"id": "fur-boxup-fcu-e", "kind": "boxup", "box": [3880, Y(905), 2150, 3887, Y(905) + 220, 2390],
+     "color": "plaster", "note": "R-J-2: closes the 7mm gap to the wall jog at x3887"},
     {"id": "fur-pelmet-br1", "kind": "cabinet", "box": [2740, Y(698) - 180, 2280, 4510, Y(698), CEIL],
      "color": "off-white", "note": "curtain pelmet box under the beam-risk band: soffit 2280, boxes the beam if confirmed / hides the dropped track if not — valid in both site outcomes",
      "ref": ["facts:rooms.master-suite.beams_columns (2026-07-22)"]},
-    {"id": "fur-lamp", "kind": "lamp", "box": [5150, 800, 0, 5500, 1150, 1500],
-     "color": "brass", "note": "floor lamp SE of bed beside east wall — the only luminaire (P1); 660mm from skt-bed-s"},
+    {"id": "fur-lamp", "kind": "lamp", "box": [5200, 1060, 0, 5500, 1360, 1500],
+     "color": "brass", "note": "floor lamp SE of bed — the only luminaire (P1); moved out of the pocket-wardrobe door sweep (A5-4) and clear of trunk-c; 469mm from skt-bed-s"},
     {"id": "fur-rug", "kind": "rug", "box": [bed_head_x - BED_L - 600, bed_cy - BED_W/2 - 250, 0, bed_head_x - 400, bed_cy + BED_W/2 + 400, 15],
      "color": "ivory", "note": "south margin 250 keeps the rug out of the door-swing arc (15mm pile would drag the leaf)"},
 ]
@@ -170,6 +198,9 @@ curtains = [  # full-length drop to floor (P1). Rendered in DAY state: sheer dra
     {"id": "cur-br3-black-r", "win": "win-br3", "box": [2490, Y(698) - 110, 20, 2640, Y(698) - 60, CEIL - 20], "layer": "blackout"},
     {"id": "cur-br3-sheer", "win": "win-br3", "box": [15, Y(698) - 160, 20, 2640, Y(698) - 130, CEIL - 20], "layer": "sheer"},
 ]
+
+hardware = {"family": "slim brass bar", "handle_z": 1000, "bar_len": 220,
+            "rule": "handle at the opening edge (opposite hinge); sliding doors use recessed edge pulls"}
 
 palette = {  # P1 palette, used for stage-3 visual base + stage-4 prompt
     "floor": "dark-walnut", "walls": "warm-off-white", "ceiling": "white",
@@ -212,7 +243,7 @@ model = {
     "area_sqft_facts": room["area_sqft"],
     "openings": openings, "mep": mep, "risk_elements": risk_elements,
     "furniture": furniture, "curtains": curtains,
-    "palette": palette, "cameras": cams,
+    "palette": palette, "hardware": hardware, "cameras": cams,
 }
 (OUT / "room_model.json").write_text(json.dumps(model, ensure_ascii=False, indent=1))
 print("room_model.json written:", OUT / "room_model.json")
